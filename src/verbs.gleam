@@ -1,40 +1,56 @@
 import types as t
 
+pub const je = t.Je("je", "me", t.M)
+
+pub const tu = t.Tu("tu", "te", t.M)
+
+pub const il = t.Il("il", "se", t.M)
+
+pub const elle = t.Elle("elle", "se", t.F)
+
+pub const nous = t.Nous("nous", "nous", t.M)
+
+pub const vous = t.Vous("vous", "vous", t.M)
+
+pub const ils = t.Ils("ils", "se", t.M)
+
+pub const elles = t.Elles("elles", "se", t.F)
+
 pub const conjugations = [
   t.ConjugationPattern(
     ending: t.Er,
     tense: t.Present,
     suffixes: [
-      #(t.Je(t.M), "e"),
-      #(t.Tu(t.M), "es"),
-      #(t.Il, "est"),
-      #(t.Nous(t.M), "ons"),
-      #(t.Vous(t.M), "ez"),
-      #(t.Ils, "ent"),
+      #(je, "e"),
+      #(tu, "es"),
+      #(il, "e"),
+      #(nous, "ons"),
+      #(vous, "ez"),
+      #(ils, "ent"),
     ],
   ),
   t.ConjugationPattern(
     ending: t.Ir,
     tense: t.Present,
     suffixes: [
-      #(t.Je(t.M), "is"),
-      #(t.Tu(t.M), "is"),
-      #(t.Il, "it"),
-      #(t.Nous(t.M), "issons"),
-      #(t.Vous(t.M), "issez"),
-      #(t.Ils, "issent"),
+      #(je, "is"),
+      #(tu, "is"),
+      #(il, "it"),
+      #(nous, "issons"),
+      #(vous, "issez"),
+      #(ils, "issent"),
     ],
   ),
   t.ConjugationPattern(
     ending: t.Re,
     tense: t.Present,
     suffixes: [
-      #(t.Je(t.M), "s"),
-      #(t.Tu(t.M), "s"),
-      #(t.Il, ""),
-      #(t.Nous(t.M), "ons"),
-      #(t.Vous(t.M), "ez"),
-      #(t.Ils, "ent"),
+      #(je, "s"),
+      #(tu, "s"),
+      #(il, ""),
+      #(nous, "ons"),
+      #(vous, "ez"),
+      #(ils, "ent"),
     ],
   ),
 ]

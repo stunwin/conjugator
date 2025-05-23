@@ -24,14 +24,14 @@ pub type Tense {
 }
 
 pub type Pronoun {
-  Je(gender: Gender)
-  Tu(gender: Gender)
-  Il
-  Elle
-  Nous(gender: Gender)
-  Vous(gender: Gender)
-  Ils
-  Elles
+  Je(string: String, reflexive: String, gender: Gender)
+  Tu(string: String, reflexive: String, gender: Gender)
+  Il(string: String, reflexive: String, gender: Gender)
+  Elle(string: String, reflexive: String, gender: Gender)
+  Nous(string: String, reflexive: String, gender: Gender)
+  Vous(string: String, reflexive: String, gender: Gender)
+  Ils(string: String, reflexive: String, gender: Gender)
+  Elles(string: String, reflexive: String, gender: Gender)
 }
 
 pub type Noun {
