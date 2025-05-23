@@ -1,4 +1,5 @@
 import gleam/io
+import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import gleam/string
@@ -6,14 +7,9 @@ import types as t
 import verbs
 
 pub fn main() {
-  echo verbs.er_present
-
-  let manger =
-    t.Er(infinitive: "manger", reflexive: False, definition: "to eat")
-  let cuisiner =
-    t.Er(infinitive: "cuisiner", reflexive: False, definition: "to eat")
-  let arriver =
-    t.Er(infinitive: "arriver", reflexive: False, definition: "to eat")
+  let manger = t.Verb(infinitive: "manger", reflexive: False, ending: t.Er)
+  let cuisiner = t.Verb(infinitive: "cuisiner", reflexive: False, ending: t.Er)
+  let arriver = t.Verb(infinitive: "arriver", reflexive: False, ending: t.Er)
   echo conjugate(t.Je(t.M), manger, t.Present)
   echo conjugate(t.Tu(t.M), cuisiner, t.Present)
   echo conjugate(t.Je(t.M), arriver, t.Present)
@@ -48,33 +44,51 @@ pub fn process_pronoun(pronoun: t.Pronoun, verb: t.Verb) -> String {
 }
 
 pub fn process_verb(pronoun: t.Pronoun, verb: t.Verb, tense: t.Tense) -> String {
-  case tense {
-    t.Present -> conjugate_present(pronoun:, verb:)
-    // t.PasseCompose(_) -> conjugate_passe_compose(pronoun:, verb:)
-    // t.FuturProche -> conjugate_futur_proche(pronoun:, verb:)
-    _ -> ""
+  let suffixlist = select_suffix_list(verb, tense)
+  case suffixlist {
+    Ok(x) if x.ending == t.Irregular -> irregular_endings(x, pronoun:, verb:)
+    Ok(x) -> regular_endings(x, pronoun:, verb:)
+    _ -> "problemo, homie"
   }
 }
 
-fn conjugate_present(pronoun pronoun: t.Pronoun, verb verb: t.Verb) -> String {
-  let root = string.drop_end(verb.infinitive, 2)
-  case verb {
-    t.Er(..) ->
-      case pronoun {
-        t.Je(_) -> root <> "e"
-        t.Tu(_) -> root <> "es"
-        t.Il -> root <> "e"
-        t.Elle -> root <> "e"
-        t.Nous(_) -> root <> "ons"
-        t.Vous(_) -> root <> "enz"
-        t.Ils -> root <> "ent"
-        t.Elles -> root <> "ent"
-      }
-    t.Ir(..) -> "ir verb"
-    t.Re(..) -> "re verb"
-    t.Irregular(..) -> "irregular verb"
-  }
+fn select_suffix_list(verb: t.Verb, tense: t.Tense) {
+  list.find(verbs.conjugations, fn(x) {
+    x.tense == tense && x.ending == verb.ending
+  })
 }
+
+fn regular_endings(
+  suffixlist: t.ConjugationPattern,
+  pronoun pronoun: t.Pronoun,
+  verb verb: t.Verb,
+) -> String {
+  //first decide which ending we're working with
+
+  //grab the verb and strip the last two letters
+  let root = string.drop_end(verb.infinitive, 2)
+  // find the ending from a list using the pronoun
+  let match = list.find(suffixlist.suffixes, fn(x) { x.0 == pronoun })
+  //grab the ending out of that last
+  let ending = case match {
+    Ok(#(_, x)) -> x
+    _ -> "error"
+  }
+  root <> ending
+}
+
+fn irregular_endings(
+  suffixlist,
+  pronoun pronoun: t.Pronoun,
+  verb verb: t.Verb,
+) -> String {
+  "irregular guy"
+}
+//   list.find(verbs.er_present.suffixes, fn(x){case x {
+//   #(x, _) if x == pronoun -> True
+//   #(_, _) -> False
+// }})
+
 // fn conjugate_futur_proche(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
 //   todo
 // }

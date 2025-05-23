@@ -1,12 +1,20 @@
 pub type ConjugationPattern {
-  ConjugationPattern(tense: Tense, suffixes: List(#(Pronoun, String)))
+  ConjugationPattern(
+    tense: Tense,
+    ending: Ending,
+    suffixes: List(#(Pronoun, String)),
+  )
 }
 
 pub type Verb {
-  Er(infinitive: String, reflexive: Bool, definition: String)
-  Ir(infinitive: String, reflexive: Bool, definition: String)
-  Re(infinitive: String, reflexive: Bool, definition: String)
-  Irregular(infinitive: String, reflexive: Bool, definition: String)
+  Verb(infinitive: String, reflexive: Bool, ending: Ending)
+}
+
+pub type Ending {
+  Er
+  Ir
+  Re
+  Irregular
 }
 
 pub type Tense {
