@@ -1,0 +1,7 @@
+---
+version: 1.3.0
+title: first person present non reflexive
+file: ./test/conjugator_test.gleam
+test_name: first_present_test
+---
+je mange
