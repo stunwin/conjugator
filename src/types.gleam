@@ -1,3 +1,13 @@
+pub type Context {
+  Context(
+    pronoun: Pronoun,
+    tense: Tense,
+    verb: Verb,
+    is_reflexive: Bool,
+    is_negated: Bool,
+  )
+}
+
 pub type ConjugationPattern {
   ConjugationPattern(
     tense: Tense,
@@ -6,8 +16,32 @@ pub type ConjugationPattern {
   )
 }
 
+pub type SentenceOrder {
+  SentenceOrder(
+    tense: Tense,
+    is_reflexive: Bool,
+    is_negated: Bool,
+    grammar_units: List(GrammarUnit),
+  )
+}
+
+pub type GrammarUnit {
+  Pronoun
+  ReflexivePronoun
+  MainVerb(VerbForm)
+  AuxiliaryVerb(Verb)
+  Ne
+  Pas
+  Object
+}
+
+pub type VerbForm {
+  Infinitive
+  Conjugated
+}
+
 pub type Verb {
-  Verb(infinitive: String, reflexive: Bool, ending: Ending)
+  Verb(infinitive: String, ending: Ending)
 }
 
 pub type Ending {

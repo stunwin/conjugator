@@ -1,51 +1,109 @@
+import gleam/dict
 import gleam/list
-import gleam/option.{type Option}
 import gleam/result
 import gleam/string
 import types as t
 import verbs as v
 
 pub fn main() {
-  let manger = t.Verb(infinitive: "manger", reflexive: False, ending: t.Er)
-  let cuisiner = t.Verb(infinitive: "cuisiner", reflexive: False, ending: t.Er)
-  let arriver = t.Verb(infinitive: "arriver", reflexive: False, ending: t.Er)
-  let coucher = t.Verb(infinitive: "coucher", reflexive: True, ending: t.Er)
-  echo conjugate(v.je, manger, t.Present)
-  echo conjugate(v.tu, cuisiner, t.Present)
-  echo conjugate(v.je, arriver, t.Present)
-  echo conjugate(v.nous, arriver, t.Present)
-  echo conjugate(v.il, coucher, t.Present)
+  let manger = t.Verb(infinitive: "manger", ending: t.Er)
+  let cuisiner = t.Verb(infinitive: "cuisiner", ending: t.Er)
+  let arriver = t.Verb(infinitive: "arriver", ending: t.Er)
+  let coucher = t.Verb(infinitive: "coucher", ending: t.Er)
+  let imaginer = t.Verb(infinitive: "imaginer", ending: t.Er)
+  let promener = t.Verb(infinitive: "promener", ending: t.Er)
+  let aller = t.Verb(infinitive: "aller", ending: t.Irregular)
+
+  let test1 =
+    t.Context(
+      pronoun: v.je,
+      verb: manger,
+      tense: t.Present,
+      is_reflexive: False,
+      is_negated: False,
+    )
+  let test2 =
+    t.Context(
+      pronoun: v.nous,
+      verb: aller,
+      tense: t.Present,
+      is_reflexive: False,
+      is_negated: False,
+    )
+  let test3 =
+    t.Context(
+      pronoun: v.je,
+      verb: manger,
+      tense: t.FuturProche,
+      is_reflexive: False,
+      is_negated: False,
+    )
+
+  echo conjugate(test1)
+  echo conjugate(test2)
+  echo conjugate(test3)
+  // echo conjugate(v.tu, cuisiner, t.Present, reflexive: False, negated: False)
+  // echo conjugate(v.je, arriver, t.Present, reflexive: False, negated: False)
+  // echo conjugate(v.nous, arriver, t.Present, reflexive: False, negated: False)
+  // echo conjugate(v.il, coucher, t.Present, reflexive: True, negated: False)
+  // echo conjugate(v.il, imaginer, t.Present, reflexive: True, negated: True)
 }
 
-pub fn conjugate(pronoun: t.Pronoun, verb: t.Verb, tense: t.Tense) -> String {
-  let verb_string = process_verb(pronoun, verb, tense)
-  let pronoun_string = process_pronoun(pronoun, verb, verb_string)
-
-  pronoun_string <> verb_string
-  // let agreement = process_agreement(pronoun_string, verb_string)
-}
-
-pub fn process_pronoun(
-  pronoun: t.Pronoun,
-  verb: t.Verb,
-  verb_string: String,
-) -> String {
-  let pronoun_string = case verb.reflexive {
-    True -> pronoun.string <> " " <> pronoun.reflexive
-    False -> pronoun.string
+pub fn conjugate(context: t.Context) -> String {
+  case get_sentence_structure(context) {
+    Ok(sentence_order) -> Ok(build_sentence(sentence_order, context))
+    _ -> Error(Nil)
   }
+  |> result.unwrap("error getting sentence structure")
+}
 
-  let pronoun_vowel =
-    vowel_check(result.unwrap(
-      string.last(pronoun_string),
-      "pronoun vowel error ",
-    ))
-  let verb_vowel =
-    vowel_check(result.unwrap(string.first(verb_string), "verb vowel error "))
+fn get_sentence_structure(context: t.Context) -> Result(t.SentenceOrder, Nil) {
+  list.find(v.sentences, fn(x) {
+    x.tense == context.tense
+    && x.is_reflexive == context.is_reflexive
+    && x.is_negated == context.is_negated
+  })
+}
 
-  case pronoun_vowel, verb_vowel {
-    True, True -> string.drop_end(pronoun_string, 1) <> "'"
-    _, _ -> pronoun_string <> " "
+fn build_sentence(sentence: t.SentenceOrder, context: t.Context) -> String {
+  list.map(sentence.grammar_units, fn(x) {
+    case x {
+      t.Pronoun -> context.pronoun.string
+      t.ReflexivePronoun -> context.pronoun.reflexive
+      t.MainVerb(t.Conjugated) -> process_verb(context)
+      t.MainVerb(t.Infinitive) -> context.verb.infinitive
+      t.AuxiliaryVerb(aux_replacement) -> {
+        let context = t.Context(..context, verb: aux_replacement)
+        process_verb(context)
+      }
+      t.Ne -> "ne"
+      t.Pas -> "pas"
+      t.Object -> "object"
+    }
+  })
+  |> join_sentence()
+}
+
+/// this function both joins and looks for elisions 
+fn join_sentence(sentence: List(String)) -> String {
+  case sentence {
+    [first, second, ..rest] ->
+      elision_check(first, second) <> join_sentence([second, ..rest])
+    [lastword] -> lastword
+    _ -> "something happened during elision"
+  }
+}
+
+fn elision_check(first: String, second: String) -> String {
+  let firstend =
+    vowel_check(string.last(first) |> result.unwrap("first word elision error"))
+  let secondstart =
+    vowel_check(
+      string.first(second) |> result.unwrap("second word elision error"),
+    )
+  case firstend, secondstart {
+    True, True -> string.drop_end(first, 1) <> "'"
+    _, _ -> first <> " "
   }
 }
 
@@ -56,56 +114,70 @@ pub fn vowel_check(letter: String) -> Bool {
   }
 }
 
-pub fn process_verb(pronoun: t.Pronoun, verb: t.Verb, tense: t.Tense) -> String {
-  let suffixlist = select_suffix_list(verb, tense)
-  case suffixlist {
-    Ok(x) if x.ending == t.Irregular -> irregular_endings(x, pronoun:, verb:)
-    Ok(x) -> regular_endings(x, pronoun:, verb:)
-    _ -> "problemo, homie"
+pub fn process_verb(context: t.Context) -> String {
+  case select_suffix_list(context) {
+    Ok(x) -> select_verb_ending(x, context)
+    _ -> "error finding suffix list"
   }
 }
 
-fn select_suffix_list(verb: t.Verb, tense: t.Tense) {
-  list.find(v.conjugations, fn(x) {
-    x.tense == tense && x.ending == verb.ending
-  })
+fn select_suffix_list(context: t.Context) -> Result(t.ConjugationPattern, Nil) {
+  case context.verb.ending {
+    t.Irregular ->
+      list.find(v.conjugations, fn(x) {
+        x.tense == context.tense
+        && list.key_find(x.suffixes, v.infinitive)
+        == Ok(context.verb.infinitive)
+      })
+    _ ->
+      list.find(v.conjugations, fn(x) {
+        x.tense == context.tense && x.ending == context.verb.ending
+      })
+  }
 }
 
-fn regular_endings(
+fn select_verb_ending(
   suffixlist: t.ConjugationPattern,
-  pronoun pronoun: t.Pronoun,
-  verb verb: t.Verb,
+  context: t.Context,
 ) -> String {
-  //first decide which ending we're working with
-
-  //grab the verb and strip the last two letters
-  let root = string.drop_end(verb.infinitive, 2)
-  // find the ending from a list using the pronoun
-  let match = list.find(suffixlist.suffixes, fn(x) { x.0 == pronoun })
-  //grab the ending out of that last
-  let ending = case match {
-    Ok(#(_, x)) -> x
-    _ -> "error"
+  let match =
+    list.key_find(suffixlist.suffixes, context.pronoun)
+    |> result.unwrap("error finding verb ending")
+  case context.verb.ending {
+    t.Irregular -> match
+    _ -> {
+      let root = string.drop_end(context.verb.infinitive, 2)
+      root <> match
+    }
   }
-  root <> ending
 }
-
-fn irregular_endings(
-  suffixlist,
-  pronoun pronoun: t.Pronoun,
-  verb verb: t.Verb,
-) -> String {
-  "irregular guy"
-}
-//   list.find(v.er_present.suffixes, fn(x){case x {
-//   #(x, _) if x == pronoun -> True
-//   #(_, _) -> False
-// }})
-
 // fn conjugate_futur_proche(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
 //   todo
 // }
 //
 // fn conjugate_passe_compose(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
 //   todo
+// }
+// pub fn process_pronoun(
+//   pronoun: t.Pronoun,
+//   verb: t.Verb,
+//   verb_string: String,
+// ) -> String {
+//   let pronoun_string = case verb.reflexive {
+//     True -> pronoun.string <> " " <> pronoun.reflexive
+//     False -> pronoun.string
+//   }
+//
+//   let pronoun_vowel =
+//     vowel_check(result.unwrap(
+//       string.last(pronoun_string),
+//       "pronoun vowel error ",
+//     ))
+//   let verb_vowel =
+//     vowel_check(result.unwrap(string.first(verb_string), "verb vowel error "))
+//
+//   case pronoun_vowel, verb_vowel {
+//     True, True -> string.drop_end(pronoun_string, 1) <> "'"
+//     _, _ -> pronoun_string <> " "
+//   }
 // }

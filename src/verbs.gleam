@@ -1,5 +1,7 @@
 import types as t
 
+pub const infinitive = t.Je("", "", t.M)
+
 pub const je = t.Je("je", "me", t.M)
 
 pub const tu = t.Tu("tu", "te", t.M)
@@ -51,6 +53,62 @@ pub const conjugations = [
       #(nous, "ons"),
       #(vous, "ez"),
       #(ils, "ent"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "vais"),
+      #(tu, "vas"),
+      #(il, "va"),
+      #(nous, "allons"),
+      #(vous, "allez"),
+      #(ils, "vont"),
+      #(infinitive, "aller"),
+    ],
+  ),
+]
+
+pub const sentences = [
+  t.SentenceOrder(
+    tense: t.Present,
+    is_negated: False,
+    is_reflexive: False,
+    grammar_units: [t.Pronoun, t.MainVerb(t.Conjugated)],
+  ),
+  t.SentenceOrder(
+    tense: t.Present,
+    is_negated: True,
+    is_reflexive: False,
+    grammar_units: [t.Pronoun, t.MainVerb(t.Conjugated)],
+  ),
+  t.SentenceOrder(
+    tense: t.Present,
+    is_negated: True,
+    is_reflexive: True,
+    grammar_units: [
+      t.Pronoun,
+      t.Ne,
+      t.ReflexivePronoun,
+      t.MainVerb(t.Conjugated),
+      t.Pas,
+    ],
+  ),
+  t.SentenceOrder(
+    tense: t.Present,
+    is_negated: False,
+    is_reflexive: True,
+    grammar_units: [t.Pronoun, t.ReflexivePronoun, t.MainVerb(t.Conjugated)],
+  ),
+  t.SentenceOrder(
+    tense: t.FuturProche,
+    is_negated: False,
+    is_reflexive: False,
+    grammar_units: [
+      t.Pronoun,
+      t.AuxiliaryVerb(t.Verb("aller", t.Irregular)),
+      t.MainVerb(t.Infinitive),
     ],
   ),
 ]
