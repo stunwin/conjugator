@@ -17,7 +17,7 @@ pub fn main() {
   let test1 =
     t.Context(
       pronoun: v.je,
-      verb: manger,
+      verb: get_verb("manger"),
       tense: t.Present,
       is_reflexive: False,
       is_negated: False,
@@ -25,7 +25,7 @@ pub fn main() {
   let test2 =
     t.Context(
       pronoun: v.nous,
-      verb: aller,
+      verb: get_verb("aller"),
       tense: t.Present,
       is_reflexive: False,
       is_negated: False,
@@ -33,7 +33,7 @@ pub fn main() {
   let test3 =
     t.Context(
       pronoun: v.je,
-      verb: manger,
+      verb: get_verb("manger"),
       tense: t.FuturProche,
       is_reflexive: False,
       is_negated: False,
@@ -47,6 +47,12 @@ pub fn main() {
   // echo conjugate(v.nous, arriver, t.Present, reflexive: False, negated: False)
   // echo conjugate(v.il, coucher, t.Present, reflexive: True, negated: False)
   // echo conjugate(v.il, imaginer, t.Present, reflexive: True, negated: True)
+}
+
+pub fn get_verb(input: String) -> t.Verb {
+  let verbdict = dict.from_list(v.verblist)
+  let assert Ok(verb) = dict.get(verbdict, input)
+  verb
 }
 
 pub fn conjugate(context: t.Context) -> String {
@@ -72,8 +78,10 @@ fn build_sentence(sentence: t.SentenceOrder, context: t.Context) -> String {
       t.ReflexivePronoun -> context.pronoun.reflexive
       t.MainVerb(t.Conjugated) -> process_verb(context)
       t.MainVerb(t.Infinitive) -> context.verb.infinitive
-      t.AuxiliaryVerb(aux_replacement) -> {
-        let context = t.Context(..context, verb: aux_replacement)
+      t.MainVerb(t.Participle) -> process_participle(context)
+      t.AuxiliaryVerb -> {
+        let aux_verb = select_aux(context)
+        let context = t.Context(..context, tense: t.Present, verb: aux_verb)
         process_verb(context)
       }
       t.Ne -> "ne"
@@ -82,6 +90,28 @@ fn build_sentence(sentence: t.SentenceOrder, context: t.Context) -> String {
     }
   })
   |> join_sentence()
+}
+
+fn process_participle(context: t.Context) -> String {
+let root = string.drop_end(context.verb.infinitive, 2) 
+  case context.tense {
+t.PasseCompose -> case context.verb.ending { 
+      t.Er -> 
+// TODO: this is where we left off. need to figur eout what order to make these decisions in 
+}
+  }
+}
+
+fn select_aux(context: t.Context) -> t.Verb {
+  case context.tense {
+    t.FuturProche -> get_verb("aller")
+    t.PasseCompose ->
+      case list.contains(v.passe_compose_etre_verbs, context.verb.infinitive) {
+        True -> get_verb("etre")
+        False -> get_verb("avoir")
+      }
+    _ -> get_verb("manger")
+  }
 }
 
 /// this function both joins and looks for elisions 

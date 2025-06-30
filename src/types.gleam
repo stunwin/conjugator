@@ -1,3 +1,5 @@
+import gleam/dynamic/decode
+
 pub type Context {
   Context(
     pronoun: Pronoun,
@@ -29,7 +31,7 @@ pub type GrammarUnit {
   Pronoun
   ReflexivePronoun
   MainVerb(VerbForm)
-  AuxiliaryVerb(Verb)
+  AuxiliaryVerb
   Ne
   Pas
   Object
@@ -38,11 +40,15 @@ pub type GrammarUnit {
 pub type VerbForm {
   Infinitive
   Conjugated
+  Participle
 }
 
 pub type Verb {
   Verb(infinitive: String, ending: Ending)
 }
+
+pub type VerbEntry =
+  #(String, Verb)
 
 pub type Ending {
   Er
@@ -53,7 +59,7 @@ pub type Ending {
 
 pub type Tense {
   Present
-  PasseCompose(aux: Verb)
+  PasseCompose
   FuturProche
 }
 
