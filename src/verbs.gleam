@@ -68,6 +68,97 @@ pub const conjugations = [
       #(infinitive, "aller"),
     ],
   ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "ai"),
+      #(tu, "as"),
+      #(il, "a"),
+      #(nous, "avons"),
+      #(vous, "avez"),
+      #(ils, "ont"),
+      #(infinitive, "avoir"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "suis"),
+      #(tu, "es"),
+      #(il, "est"),
+      #(nous, "sommes"),
+      #(vous, "êtes"),
+      #(ils, "sont"),
+      #(infinitive, "etre"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "viens"),
+      #(tu, "viens"),
+      #(il, "vient"),
+      #(nous, "venons"),
+      #(vous, "venez"),
+      #(ils, "viennent"),
+      #(infinitive, "venir"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "nais"),
+      #(tu, "nais"),
+      #(il, "naît"),
+      #(nous, "naissons"),
+      #(vous, "naissez"),
+      #(ils, "naissent"),
+      #(infinitive, "naître"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "meurs"),
+      #(tu, "meurs"),
+      #(il, "meurt"),
+      #(nous, "mourons"),
+      #(vous, "mourez"),
+      #(ils, "meurent"),
+      #(infinitive, "mourir"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "deviens"),
+      #(tu, "deviens"),
+      #(il, "devient"),
+      #(nous, "devenons"),
+      #(vous, "devenez"),
+      #(ils, "deviennent"),
+      #(infinitive, "devenir"),
+    ],
+  ),
+  t.ConjugationPattern(
+    ending: t.Irregular,
+    tense: t.Present,
+    suffixes: [
+      #(je, "reviens"),
+      #(tu, "reviens"),
+      #(il, "revient"),
+      #(nous, "revenons"),
+      #(vous, "revenez"),
+      #(ils, "reviennent"),
+      #(infinitive, "revenir"),
+    ],
+  ),
 ]
 
 pub const sentences = [
@@ -101,11 +192,97 @@ pub const sentences = [
     is_reflexive: True,
     grammar_units: [t.Pronoun, t.ReflexivePronoun, t.MainVerb(t.Conjugated)],
   ),
+  //futur proche non negated, non reflexive
   t.SentenceOrder(
     tense: t.FuturProche,
     is_negated: False,
     is_reflexive: False,
+    grammar_units: [t.Pronoun, t.AuxiliaryVerb, t.MainVerb(t.Infinitive)],
+  ),
+  //futur proche negated, non reflexive
+  t.SentenceOrder(
+    tense: t.FuturProche,
+    is_negated: True,
+    is_reflexive: False,
+    grammar_units: [
+      t.Pronoun,
+      t.Ne,
+      t.AuxiliaryVerb,
+      t.Pas,
+      t.MainVerb(t.Infinitive),
+    ],
+  ),
+  //futur proche negated, reflexive
+  t.SentenceOrder(
+    tense: t.FuturProche,
+    is_negated: True,
+    is_reflexive: True,
+    grammar_units: [
+      t.Pronoun,
+      t.Ne,
+      t.AuxiliaryVerb,
+      t.Pas,
+      t.ReflexivePronoun,
+      t.MainVerb(t.Infinitive),
+    ],
+  ),
+  //futur proche non-negated, reflexive
+  t.SentenceOrder(
+    tense: t.FuturProche,
+    is_negated: False,
+    is_reflexive: True,
+    grammar_units: [
+      t.Pronoun,
+      t.AuxiliaryVerb,
+      t.ReflexivePronoun,
+      t.MainVerb(t.Infinitive),
+    ],
+  ),
+  //passe compose non negated, non reflexive
+  t.SentenceOrder(
+    tense: t.PasseCompose,
+    is_negated: False,
+    is_reflexive: False,
     grammar_units: [t.Pronoun, t.AuxiliaryVerb, t.MainVerb(t.Participle)],
+  ),
+  //passe compose negated, non reflexive
+  t.SentenceOrder(
+    tense: t.PasseCompose,
+    is_negated: True,
+    is_reflexive: False,
+    grammar_units: [
+      t.Pronoun,
+      t.Ne,
+      t.AuxiliaryVerb,
+      t.Pas,
+      t.MainVerb(t.Participle),
+    ],
+  ),
+  //passe compose negated, reflexive
+  t.SentenceOrder(
+    tense: t.PasseCompose,
+    is_negated: True,
+    is_reflexive: True,
+    grammar_units: [
+      t.Pronoun,
+      t.Ne,
+      t.AuxiliaryVerb,
+      t.Pas,
+      t.ReflexivePronoun,
+      t.MainVerb(t.Participle),
+    ],
+  ),
+  //passe compose non-negated, reflexive
+  t.SentenceOrder(
+    tense: t.PasseCompose,
+    is_negated: False,
+    is_reflexive: True,
+    grammar_units: [
+      t.Pronoun,
+      t.AuxiliaryVerb,
+      t.ReflexivePronoun,
+      t.MainVerb(t.Participle),
+    ],
   ),
 ]
 

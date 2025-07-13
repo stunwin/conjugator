@@ -6,14 +6,6 @@ import types as t
 import verbs as v
 
 pub fn main() {
-  let manger = t.Verb(infinitive: "manger", ending: t.Er)
-  let cuisiner = t.Verb(infinitive: "cuisiner", ending: t.Er)
-  let arriver = t.Verb(infinitive: "arriver", ending: t.Er)
-  let coucher = t.Verb(infinitive: "coucher", ending: t.Er)
-  let imaginer = t.Verb(infinitive: "imaginer", ending: t.Er)
-  let promener = t.Verb(infinitive: "promener", ending: t.Er)
-  let aller = t.Verb(infinitive: "aller", ending: t.Irregular)
-
   let test1 =
     t.Context(
       pronoun: v.je,
@@ -39,14 +31,19 @@ pub fn main() {
       is_negated: False,
     )
 
+  let test4 =
+    t.Context(
+      pronoun: v.tu,
+      verb: get_verb("aimer"),
+      tense: t.PasseCompose,
+      is_reflexive: False,
+      is_negated: False,
+    )
+
   echo conjugate(test1)
   echo conjugate(test2)
   echo conjugate(test3)
-  // echo conjugate(v.tu, cuisiner, t.Present, reflexive: False, negated: False)
-  // echo conjugate(v.je, arriver, t.Present, reflexive: False, negated: False)
-  // echo conjugate(v.nous, arriver, t.Present, reflexive: False, negated: False)
-  // echo conjugate(v.il, coucher, t.Present, reflexive: True, negated: False)
-  // echo conjugate(v.il, imaginer, t.Present, reflexive: True, negated: True)
+  echo conjugate(test4)
 }
 
 pub fn get_verb(input: String) -> t.Verb {
@@ -93,12 +90,12 @@ fn build_sentence(sentence: t.SentenceOrder, context: t.Context) -> String {
 }
 
 fn process_participle(context: t.Context) -> String {
-let root = string.drop_end(context.verb.infinitive, 2) 
-  case context.tense {
-t.PasseCompose -> case context.verb.ending { 
-      t.Er -> 
-// TODO: this is where we left off. need to figur eout what order to make these decisions in 
-}
+  let root = string.drop_end(context.verb.infinitive, 2)
+  case context.verb.ending {
+    t.Er -> root <> "é"
+    t.Ir -> root <> "i"
+    t.Re -> root <> "u"
+    t.Irregular -> "TODO: irregular participle"
   }
 }
 
@@ -114,9 +111,10 @@ fn select_aux(context: t.Context) -> t.Verb {
   }
 }
 
-/// this function both joins and looks for elisions 
 fn join_sentence(sentence: List(String)) -> String {
   case sentence {
+    // remember we don't elide tu
+    ["tu", ..rest] -> "tu " <> join_sentence(rest)
     [first, second, ..rest] ->
       elision_check(first, second) <> join_sentence([second, ..rest])
     [lastword] -> lastword
