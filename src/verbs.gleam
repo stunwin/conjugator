@@ -337,6 +337,7 @@ pub const verblist = [
   #("confondre", t.Verb("confondre", t.Re)),
   #("rendre", t.Verb("rendre", t.Re)),
   #("dépendre", t.Verb("dépendre", t.Re)),
+  #("ERROR", t.Verb("ERROR", t.Irregular)),
 ]
 
 pub const passe_compose_etre_verbs: List(String) = [

@@ -5,6 +5,15 @@ import gleam/string
 import types as t
 import verbs as v
 
+pub type ConjugationError {
+  VerbNotFound
+  SentenceOrderNotFound
+  SuffixListNotFound
+  VerbEndingNotFound
+  ElisionError1
+  ElisionError2
+}
+
 pub fn main() {
   let test1 =
     t.Context(
@@ -46,18 +55,30 @@ pub fn main() {
   echo conjugate(test4)
 }
 
-pub fn get_verb(input: String) -> t.Verb {
-  let verbdict = dict.from_list(v.verblist)
-  let assert Ok(verb) = dict.get(verbdict, input)
-  verb
+pub fn result_to_string(input: Result(String, ConjugationError)) -> String {
+  case input {
+    Ok(sentence) -> sentence
+    Error(VerbNotFound) -> "input verb string not found"
+    Error(SentenceOrderNotFound) ->
+      "input context did not yield sentence structure"
+  }
 }
 
-pub fn conjugate(context: t.Context) -> String {
-  case get_sentence_structure(context) {
-    Ok(sentence_order) -> Ok(build_sentence(sentence_order, context))
-    _ -> Error(Nil)
+pub fn get_verb(input: String) -> t.Verb {
+  let verbdict = dict.from_list(v.verblist)
+  case dict.get(verbdict, input) {
+    Ok(verb) -> verb
+    Error(_) -> t.Verb("ERROR", t.Irregular)
   }
-  |> result.unwrap("error getting sentence structure")
+}
+
+pub fn conjugate(context: t.Context) -> Result(String, ConjugationError) {
+  case get_sentence_structure(context), context.verb.infinitive {
+    _, "ERROR" -> Error(VerbNotFound)
+    //TODO: no longer need to wrap build_sentence output once we have the correct handling
+    Ok(sentence_order), _ -> Ok(build_sentence(sentence_order, context))
+    _, _ -> Error(SentenceOrderNotFound)
+  }
 }
 
 fn get_sentence_structure(context: t.Context) -> Result(t.SentenceOrder, Nil) {
@@ -111,6 +132,8 @@ fn select_aux(context: t.Context) -> t.Verb {
   }
 }
 
+// TODO: this is where we left off refactorng from the bottom up. it's... a little confusing now.
+
 fn join_sentence(sentence: List(String)) -> String {
   case sentence {
     // remember we don't elide tu
@@ -122,14 +145,17 @@ fn join_sentence(sentence: List(String)) -> String {
   }
 }
 
-fn elision_check(first: String, second: String) -> String {
-  let firstend =
-    vowel_check(string.last(first) |> result.unwrap("first word elision error"))
-  let secondstart =
-    vowel_check(
-      string.first(second) |> result.unwrap("second word elision error"),
-    )
-  case firstend, secondstart {
+fn elision_check(
+  first: String,
+  second: String,
+) -> Result(String, ConjugationError) {
+  use firstend <- result.try(
+    string.last(first) |> result.replace_error(ElisionError1),
+  )
+  use secondstart <- result.map(
+    string.first(second) |> result.replace_error(ElisionError2),
+  )
+  case vowel_check(firstend), vowel_check(secondstart) {
     True, True -> string.drop_end(first, 1) <> "'"
     _, _ -> first <> " "
   }
@@ -142,14 +168,14 @@ pub fn vowel_check(letter: String) -> Bool {
   }
 }
 
-pub fn process_verb(context: t.Context) -> String {
-  case select_suffix_list(context) {
-    Ok(x) -> select_verb_ending(x, context)
-    _ -> "error finding suffix list"
-  }
+pub fn process_verb(context: t.Context) -> Result(String, ConjugationError) {
+  use suffixlist <- result.try(select_suffix_list(context))
+  select_verb_ending(suffixlist, context)
 }
 
-fn select_suffix_list(context: t.Context) -> Result(t.ConjugationPattern, Nil) {
+fn select_suffix_list(
+  context: t.Context,
+) -> Result(t.ConjugationPattern, ConjugationError) {
   case context.verb.ending {
     t.Irregular ->
       list.find(v.conjugations, fn(x) {
@@ -162,21 +188,21 @@ fn select_suffix_list(context: t.Context) -> Result(t.ConjugationPattern, Nil) {
         x.tense == context.tense && x.ending == context.verb.ending
       })
   }
+  |> result.replace_error(SuffixListNotFound)
 }
 
 fn select_verb_ending(
   suffixlist: t.ConjugationPattern,
   context: t.Context,
-) -> String {
-  let match =
+) -> Result(String, ConjugationError) {
+  use match <- result.map(
     list.key_find(suffixlist.suffixes, context.pronoun)
-    |> result.unwrap("error finding verb ending")
+    |> result.replace_error(VerbEndingNotFound),
+  )
+
   case context.verb.ending {
     t.Irregular -> match
-    _ -> {
-      let root = string.drop_end(context.verb.infinitive, 2)
-      root <> match
-    }
+    _ -> string.drop_end(context.verb.infinitive, 2) <> match
   }
 }
 // fn conjugate_futur_proche(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
