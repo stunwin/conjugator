@@ -1,7 +1,10 @@
+import gleam/option.{type Option, None}
+
 pub type Context {
   Context(
     pronoun: Pronoun,
     tense: Tense,
+    verblookup: String,
     verb: Verb,
     is_reflexive: Bool,
     is_negated: Bool,

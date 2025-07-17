@@ -1,5 +1,7 @@
 import gleam/dict
 import gleam/list
+
+// import gleam/option.{type Option, None}
 import gleam/result
 import gleam/string
 import types as t
@@ -12,13 +14,16 @@ pub type ConjugationError {
   VerbEndingNotFound
   ElisionError1
   ElisionError2
+  AuxVerbNotFound
 }
 
 pub fn main() {
+  let emptyverb = t.Verb("empty", t.Irregular)
   let test1 =
     t.Context(
       pronoun: v.je,
-      verb: get_verb("manger"),
+      verblookup: "manger",
+      verb: emptyverb,
       tense: t.Present,
       is_reflexive: False,
       is_negated: False,
@@ -26,7 +31,8 @@ pub fn main() {
   let test2 =
     t.Context(
       pronoun: v.nous,
-      verb: get_verb("aller"),
+      verblookup: "aller",
+      verb: emptyverb,
       tense: t.Present,
       is_reflexive: False,
       is_negated: False,
@@ -34,7 +40,8 @@ pub fn main() {
   let test3 =
     t.Context(
       pronoun: v.je,
-      verb: get_verb("manger"),
+      verblookup: "manger",
+      verb: emptyverb,
       tense: t.FuturProche,
       is_reflexive: False,
       is_negated: False,
@@ -43,7 +50,8 @@ pub fn main() {
   let test4 =
     t.Context(
       pronoun: v.tu,
-      verb: get_verb("aimer"),
+      verblookup: "aimer",
+      verb: emptyverb,
       tense: t.PasseCompose,
       is_reflexive: False,
       is_negated: False,
@@ -64,50 +72,56 @@ pub fn result_to_string(input: Result(String, ConjugationError)) -> String {
   }
 }
 
-pub fn get_verb(input: String) -> t.Verb {
-  let verbdict = dict.from_list(v.verblist)
-  case dict.get(verbdict, input) {
-    Ok(verb) -> verb
-    Error(_) -> t.Verb("ERROR", t.Irregular)
-  }
-}
-
 pub fn conjugate(context: t.Context) -> Result(String, ConjugationError) {
-  case get_sentence_structure(context), context.verb.infinitive {
-    _, "ERROR" -> Error(VerbNotFound)
-    //TODO: no longer need to wrap build_sentence output once we have the correct handling
-    Ok(sentence_order), _ -> Ok(build_sentence(sentence_order, context))
-    _, _ -> Error(SentenceOrderNotFound)
-  }
+  use verbstruct <- result.try(get_verb(context.verblookup))
+  use sentence_order <- result.try(get_sentence_structure(context))
+  let context = t.Context(..context, verb: verbstruct)
+  build_sentence(sentence_order, context)
 }
 
-fn get_sentence_structure(context: t.Context) -> Result(t.SentenceOrder, Nil) {
+pub fn get_verb(input: String) -> Result(t.Verb, ConjugationError) {
+  let verbdict = dict.from_list(v.verblist)
+  dict.get(verbdict, input)
+  |> result.replace_error(VerbNotFound)
+}
+
+fn get_sentence_structure(
+  context: t.Context,
+) -> Result(t.SentenceOrder, ConjugationError) {
   list.find(v.sentences, fn(x) {
     x.tense == context.tense
     && x.is_reflexive == context.is_reflexive
     && x.is_negated == context.is_negated
   })
+  |> result.replace_error(SentenceOrderNotFound)
 }
 
-fn build_sentence(sentence: t.SentenceOrder, context: t.Context) -> String {
-  list.map(sentence.grammar_units, fn(x) {
-    case x {
-      t.Pronoun -> context.pronoun.string
-      t.ReflexivePronoun -> context.pronoun.reflexive
-      t.MainVerb(t.Conjugated) -> process_verb(context)
-      t.MainVerb(t.Infinitive) -> context.verb.infinitive
-      t.MainVerb(t.Participle) -> process_participle(context)
-      t.AuxiliaryVerb -> {
-        let aux_verb = select_aux(context)
-        let context = t.Context(..context, tense: t.Present, verb: aux_verb)
-        process_verb(context)
+fn build_sentence(
+  sentence: t.SentenceOrder,
+  context: t.Context,
+) -> Result(String, ConjugationError) {
+  let processed_list =
+    list.map(sentence.grammar_units, fn(x) {
+      case x {
+        t.Pronoun -> Ok(context.pronoun.string)
+        t.ReflexivePronoun -> Ok(context.pronoun.reflexive)
+        t.MainVerb(t.Conjugated) -> process_verb(context)
+        t.MainVerb(t.Infinitive) -> Ok(context.verb.infinitive)
+        t.MainVerb(t.Participle) -> Ok(process_participle(context))
+        t.AuxiliaryVerb -> {
+          use aux_verb <- result.try(select_aux(context))
+          let context = t.Context(..context, tense: t.Present, verb: aux_verb)
+          process_verb(context)
+        }
+        t.Ne -> Ok("ne")
+        t.Pas -> Ok("pas")
+        t.Object -> Ok("object")
       }
-      t.Ne -> "ne"
-      t.Pas -> "pas"
-      t.Object -> "object"
-    }
-  })
-  |> join_sentence()
+    })
+  case result.all(processed_list) {
+    Ok(stringlist) -> Ok(join_sentence(stringlist))
+    Error(e) -> Error(e)
+  }
 }
 
 fn process_participle(context: t.Context) -> String {
@@ -120,7 +134,7 @@ fn process_participle(context: t.Context) -> String {
   }
 }
 
-fn select_aux(context: t.Context) -> t.Verb {
+fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
   case context.tense {
     t.FuturProche -> get_verb("aller")
     t.PasseCompose ->
@@ -128,13 +142,13 @@ fn select_aux(context: t.Context) -> t.Verb {
         True -> get_verb("etre")
         False -> get_verb("avoir")
       }
-    _ -> get_verb("manger")
+    _ -> Error(AuxVerbNotFound)
   }
 }
 
 // TODO: this is where we left off refactorng from the bottom up. it's... a little confusing now.
 
-fn join_sentence(sentence: List(String)) -> String {
+fn join_sentence(sentence: List(String)) {
   case sentence {
     // remember we don't elide tu
     ["tu", ..rest] -> "tu " <> join_sentence(rest)
