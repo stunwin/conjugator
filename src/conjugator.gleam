@@ -1,7 +1,5 @@
 import gleam/dict
 import gleam/list
-
-// import gleam/option.{type Option, None}
 import gleam/result
 import gleam/string
 import types as t
@@ -17,8 +15,9 @@ pub type ConjugationError {
   AuxVerbNotFound
 }
 
+pub const emptyverb = t.Verb("empty", t.Irregular)
+
 pub fn main() {
-  let emptyverb = t.Verb("empty", t.Irregular)
   let test1 =
     t.Context(
       pronoun: v.je,
@@ -57,10 +56,10 @@ pub fn main() {
       is_negated: False,
     )
 
-  echo conjugate(test1)
-  echo conjugate(test2)
-  echo conjugate(test3)
-  echo conjugate(test4)
+  echo conjugate(test1) |> result_to_string()
+  echo conjugate(test2) |> result_to_string()
+  echo conjugate(test3) |> result_to_string()
+  echo conjugate(test4) |> result_to_string()
 }
 
 pub fn result_to_string(input: Result(String, ConjugationError)) -> String {
@@ -69,6 +68,13 @@ pub fn result_to_string(input: Result(String, ConjugationError)) -> String {
     Error(VerbNotFound) -> "input verb string not found"
     Error(SentenceOrderNotFound) ->
       "input context did not yield sentence structure"
+    Error(SuffixListNotFound) -> "suffix list not found"
+    Error(VerbEndingNotFound) -> "verb ending not found"
+    Error(ElisionError1) ->
+      "elision error in first word (probably an empty string)"
+    Error(ElisionError2) ->
+      "elision error in second word (probably an empty string)"
+    Error(AuxVerbNotFound) -> "auxiliary verb not found"
   }
 }
 
@@ -118,44 +124,29 @@ fn build_sentence(
         t.Object -> Ok("object")
       }
     })
-  case result.all(processed_list) {
-    Ok(stringlist) -> Ok(join_sentence(stringlist))
-    Error(e) -> Error(e)
-  }
+  use listresult <- result.map(result.all(processed_list))
+  join_sentence(listresult)
+  |> result_to_string()
 }
-
-fn process_participle(context: t.Context) -> String {
-  let root = string.drop_end(context.verb.infinitive, 2)
-  case context.verb.ending {
-    t.Er -> root <> "é"
-    t.Ir -> root <> "i"
-    t.Re -> root <> "u"
-    t.Irregular -> "TODO: irregular participle"
-  }
-}
-
-fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
-  case context.tense {
-    t.FuturProche -> get_verb("aller")
-    t.PasseCompose ->
-      case list.contains(v.passe_compose_etre_verbs, context.verb.infinitive) {
-        True -> get_verb("etre")
-        False -> get_verb("avoir")
-      }
-    _ -> Error(AuxVerbNotFound)
-  }
-}
-
-// TODO: this is where we left off refactorng from the bottom up. it's... a little confusing now.
 
 fn join_sentence(sentence: List(String)) {
+  let words = prep_elisions(sentence)
+  use outputresult <- result.map(result.all(words))
+  string.concat(outputresult)
+}
+
+fn prep_elisions(
+  sentence: List(String),
+) -> List(Result(String, ConjugationError)) {
   case sentence {
-    // remember we don't elide tu
-    ["tu", ..rest] -> "tu " <> join_sentence(rest)
+    ["tu", ..rest] -> list.append([Ok("tu ")], prep_elisions(rest))
     [first, second, ..rest] ->
-      elision_check(first, second) <> join_sentence([second, ..rest])
-    [lastword] -> lastword
-    _ -> "something happened during elision"
+      list.append(
+        [elision_check(first, second)],
+        prep_elisions([second, ..rest]),
+      )
+    [last] -> [Ok(last)]
+    [] -> []
   }
 }
 
@@ -185,6 +176,28 @@ pub fn vowel_check(letter: String) -> Bool {
 pub fn process_verb(context: t.Context) -> Result(String, ConjugationError) {
   use suffixlist <- result.try(select_suffix_list(context))
   select_verb_ending(suffixlist, context)
+}
+
+fn process_participle(context: t.Context) -> String {
+  let root = string.drop_end(context.verb.infinitive, 2)
+  case context.verb.ending {
+    t.Er -> root <> "é"
+    t.Ir -> root <> "i"
+    t.Re -> root <> "u"
+    t.Irregular -> "TODO: irregular participle"
+  }
+}
+
+fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
+  case context.tense {
+    t.FuturProche -> get_verb("aller")
+    t.PasseCompose ->
+      case list.contains(v.passe_compose_etre_verbs, context.verb.infinitive) {
+        True -> get_verb("etre")
+        False -> get_verb("avoir")
+      }
+    _ -> Error(AuxVerbNotFound)
+  }
 }
 
 fn select_suffix_list(
@@ -219,33 +232,3 @@ fn select_verb_ending(
     _ -> string.drop_end(context.verb.infinitive, 2) <> match
   }
 }
-// fn conjugate_futur_proche(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
-//   todo
-// }
-//
-// fn conjugate_passe_compose(pronoun pronoun: Pronoun, verb verb: Verb) -> String {
-//   todo
-// }
-// pub fn process_pronoun(
-//   pronoun: t.Pronoun,
-//   verb: t.Verb,
-//   verb_string: String,
-// ) -> String {
-//   let pronoun_string = case verb.reflexive {
-//     True -> pronoun.string <> " " <> pronoun.reflexive
-//     False -> pronoun.string
-//   }
-//
-//   let pronoun_vowel =
-//     vowel_check(result.unwrap(
-//       string.last(pronoun_string),
-//       "pronoun vowel error ",
-//     ))
-//   let verb_vowel =
-//     vowel_check(result.unwrap(string.first(verb_string), "verb vowel error "))
-//
-//   case pronoun_vowel, verb_vowel {
-//     True, True -> string.drop_end(pronoun_string, 1) <> "'"
-//     _, _ -> pronoun_string <> " "
-//   }
-// }
