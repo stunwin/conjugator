@@ -19,6 +19,14 @@ pub type ConjugationPattern {
   )
 }
 
+pub type RawConjugationPattern {
+  RawConjugationPattern(
+    tense: Tense,
+    ending: Ending,
+    suffixes: List(#(String, String)),
+  )
+}
+
 pub type SentenceOrder {
   SentenceOrder(
     tense: Tense,

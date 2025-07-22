@@ -1,7 +1,10 @@
 import gleam/dict
+import gleam/dynamic/decode
+import gleam/json
 import gleam/list
 import gleam/result
 import gleam/string
+import simplifile
 import types as t
 import verbs as v
 
@@ -86,7 +89,10 @@ pub fn conjugate(context: t.Context) -> Result(String, ConjugationError) {
 }
 
 pub fn get_verb(input: String) -> Result(t.Verb, ConjugationError) {
-  let verbdict = dict.from_list(v.verblist)
+  // let verbdict = dict.from_list(v.verblist)
+  let assert Ok(records) = simplifile.read("../data/verbs.json")
+  let assert Ok(verbdict) = json.parse(records, verb_list_decoder())
+
   dict.get(verbdict, input)
   |> result.replace_error(VerbNotFound)
 }
@@ -203,6 +209,7 @@ fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
 fn select_suffix_list(
   context: t.Context,
 ) -> Result(t.ConjugationPattern, ConjugationError) {
+  let patternlist = patterns_from_json()
   case context.verb.ending {
     t.Irregular ->
       list.find(v.conjugations, fn(x) {
@@ -230,5 +237,90 @@ fn select_verb_ending(
   case context.verb.ending {
     t.Irregular -> match
     _ -> string.drop_end(context.verb.infinitive, 2) <> match
+  }
+}
+
+//[[JSON]]------------------------------------------------------------------------------------//
+
+fn patterns_from_json() {
+  let assert Ok(patterns) = simplifile.read("../data/conjugations.json")
+  let assert Ok(patternlist) = json.parse(patterns, conjugation_list_decoder())
+  list.map(patternlist, hydrate_pattern)
+}
+
+fn hydrate_pattern(pattern: t.RawConjugationPattern) -> t.ConjugationPattern {
+  t.ConjugationPattern(
+    tense: pattern.tense,
+    ending: pattern.ending,
+    suffixes: list.map(pattern.suffixes, fn(x) {
+      let pronoun = case x.0 {
+        "Tu" -> v.tu
+        "Il" -> v.il
+        "Nous" -> v.nous
+        "Vous" -> v.vous
+        "Ils" -> v.ils
+        _ -> v.je
+      }
+      #(pronoun, x.1)
+    }),
+  )
+}
+
+fn verb_list_decoder() -> decode.Decoder(dict.Dict(String, t.Verb)) {
+  decode.dict(decode.string, verb_decoder())
+}
+
+fn conjugation_list_decoder() {
+  decode.list(raw_conjugation_pattern_decoder())
+}
+
+fn verb_decoder() -> decode.Decoder(t.Verb) {
+  use infinitive <- decode.field("infinitive", decode.string)
+  use ending <- decode.field("ending", ending_decoder())
+  decode.success(t.Verb(infinitive:, ending:))
+}
+
+fn raw_conjugation_pattern_decoder() -> decode.Decoder(t.RawConjugationPattern) {
+  use ending <- decode.field("ending", ending_decoder())
+  use tense <- decode.field("tense", tense_decoder())
+  use suffixes <- decode.field(
+    "suffixes",
+    decode.list({
+      use a <- decode.field("pronoun", decode.string)
+      use b <- decode.field("suffix", decode.string)
+
+      decode.success(#(a, b))
+    }),
+  )
+  decode.success(t.RawConjugationPattern(ending:, tense:, suffixes:))
+}
+
+fn ending_decoder() -> decode.Decoder(t.Ending) {
+  use variant <- decode.then(decode.string)
+  case variant {
+    "Er" -> decode.success(t.Er)
+    "Ir" -> decode.success(t.Ir)
+    "Re" -> decode.success(t.Re)
+    "Irregular" -> decode.success(t.Irregular)
+    _ -> panic as "unknown ending!!"
+  }
+}
+
+fn tense_decoder() -> decode.Decoder(t.Tense) {
+  use variant <- decode.then(decode.string)
+  case variant {
+    "Present" -> decode.success(t.Present)
+    "PasseCompose" -> decode.success(t.PasseCompose)
+    "FuturProche" -> decode.success(t.FuturProche)
+    _ -> panic as "unknown tense!"
+  }
+}
+
+fn gender_decoder() -> decode.Decoder(t.Gender) {
+  use variant <- decode.then(decode.string)
+  case variant {
+    "M" -> decode.success(t.M)
+    "F" -> decode.success(t.F)
+    _ -> panic as "unknown gender!"
   }
 }
