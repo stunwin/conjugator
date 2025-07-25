@@ -18,6 +18,7 @@ pub const ils = t.Ils("ils", "se", t.M)
 
 pub const elles = t.Elles("elles", "se", t.F)
 
+// CONJUGATIONS -----
 pub const conjugations = [
   t.ConjugationPattern(
     ending: t.Er,
@@ -161,6 +162,7 @@ pub const conjugations = [
   ),
 ]
 
+// SENTENCES --------
 pub const sentences = [
   t.SentenceOrder(
     tense: t.Present,
@@ -286,6 +288,7 @@ pub const sentences = [
   ),
 ]
 
+// VERBS
 pub const verblist = [
   #("manger", t.Verb("manger", t.Er)),
   #("avoir", t.Verb("avoir", t.Irregular)),

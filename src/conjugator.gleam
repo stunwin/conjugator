@@ -6,7 +6,6 @@ import gleam/result
 import gleam/string
 import simplifile
 import types as t
-import verbs as v
 
 pub type ConjugationError {
   VerbNotFound
@@ -20,10 +19,28 @@ pub type ConjugationError {
 
 pub const emptyverb = t.Verb("empty", t.Irregular)
 
+pub const infinitive = t.Je("", "", t.M)
+
+pub const je = t.Je("je", "me", t.M)
+
+pub const tu = t.Tu("tu", "te", t.M)
+
+pub const il = t.Il("il", "se", t.M)
+
+pub const elle = t.Elle("elle", "se", t.F)
+
+pub const nous = t.Nous("nous", "nous", t.M)
+
+pub const vous = t.Vous("vous", "vous", t.M)
+
+pub const ils = t.Ils("ils", "se", t.M)
+
+pub const elles = t.Elles("elles", "se", t.F)
+
 pub fn main() {
   let test1 =
     t.Context(
-      pronoun: v.je,
+      pronoun: je,
       verblookup: "manger",
       verb: emptyverb,
       tense: t.Present,
@@ -32,7 +49,7 @@ pub fn main() {
     )
   let test2 =
     t.Context(
-      pronoun: v.nous,
+      pronoun: nous,
       verblookup: "aller",
       verb: emptyverb,
       tense: t.Present,
@@ -41,7 +58,7 @@ pub fn main() {
     )
   let test3 =
     t.Context(
-      pronoun: v.je,
+      pronoun: je,
       verblookup: "manger",
       verb: emptyverb,
       tense: t.FuturProche,
@@ -51,7 +68,7 @@ pub fn main() {
 
   let test4 =
     t.Context(
-      pronoun: v.tu,
+      pronoun: tu,
       verblookup: "aimer",
       verb: emptyverb,
       tense: t.PasseCompose,
@@ -89,8 +106,8 @@ pub fn conjugate(context: t.Context) -> Result(String, ConjugationError) {
 }
 
 pub fn get_verb(input: String) -> Result(t.Verb, ConjugationError) {
-  // let verbdict = dict.from_list(v.verblist)
-  let assert Ok(records) = simplifile.read("../data/verbs.json")
+  // let verbdict = dict.from_list(verblist)
+  let assert Ok(records) = simplifile.read("./data/verbs.json")
   let assert Ok(verbdict) = json.parse(records, verb_list_decoder())
 
   dict.get(verbdict, input)
@@ -100,7 +117,11 @@ pub fn get_verb(input: String) -> Result(t.Verb, ConjugationError) {
 fn get_sentence_structure(
   context: t.Context,
 ) -> Result(t.SentenceOrder, ConjugationError) {
-  list.find(v.sentences, fn(x) {
+  let assert Ok(file) = simplifile.read("./data/sentences.json")
+  let assert Ok(sentences) =
+    json.parse(file, decode.list(sentence_order_decoder()))
+
+  list.find(sentences, fn(x) {
     x.tense == context.tense
     && x.is_reflexive == context.is_reflexive
     && x.is_negated == context.is_negated
@@ -197,11 +218,14 @@ fn process_participle(context: t.Context) -> String {
 fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
   case context.tense {
     t.FuturProche -> get_verb("aller")
-    t.PasseCompose ->
-      case list.contains(v.passe_compose_etre_verbs, context.verb.infinitive) {
+    t.PasseCompose -> {
+      let etre_verbs = get_passe_compose_etre_list()
+
+      case list.contains(etre_verbs, context.verb.infinitive) {
         True -> get_verb("etre")
         False -> get_verb("avoir")
       }
+    }
     _ -> Error(AuxVerbNotFound)
   }
 }
@@ -212,13 +236,12 @@ fn select_suffix_list(
   let patternlist = patterns_from_json()
   case context.verb.ending {
     t.Irregular ->
-      list.find(v.conjugations, fn(x) {
+      list.find(patternlist, fn(x) {
         x.tense == context.tense
-        && list.key_find(x.suffixes, v.infinitive)
-        == Ok(context.verb.infinitive)
+        && list.key_find(x.suffixes, infinitive) == Ok(context.verb.infinitive)
       })
     _ ->
-      list.find(v.conjugations, fn(x) {
+      list.find(patternlist, fn(x) {
         x.tense == context.tense && x.ending == context.verb.ending
       })
   }
@@ -242,10 +265,24 @@ fn select_verb_ending(
 
 //[[JSON]]------------------------------------------------------------------------------------//
 
-fn patterns_from_json() {
-  let assert Ok(patterns) = simplifile.read("../data/conjugations.json")
-  let assert Ok(patternlist) = json.parse(patterns, conjugation_list_decoder())
+fn get_passe_compose_etre_list() {
+  let assert Ok(file) = simplifile.read("./data/passe_compose_etre_verbs.json")
+  let assert Ok(verblist) = json.parse(file, decode.list(decode.string))
+  verblist
+}
+
+fn patterns_from_json() -> List(t.ConjugationPattern) {
+  let assert Ok(file) = simplifile.read("./data/conjugations.json")
+  let assert Ok(patternlist) = json.parse(file, conjugation_list_decoder())
   list.map(patternlist, hydrate_pattern)
+}
+
+fn verb_list_decoder() -> decode.Decoder(dict.Dict(String, t.Verb)) {
+  decode.dict(decode.string, verb_decoder())
+}
+
+fn conjugation_list_decoder() -> decode.Decoder(List(t.RawConjugationPattern)) {
+  decode.list(raw_conjugation_pattern_decoder())
 }
 
 fn hydrate_pattern(pattern: t.RawConjugationPattern) -> t.ConjugationPattern {
@@ -254,24 +291,50 @@ fn hydrate_pattern(pattern: t.RawConjugationPattern) -> t.ConjugationPattern {
     ending: pattern.ending,
     suffixes: list.map(pattern.suffixes, fn(x) {
       let pronoun = case x.0 {
-        "Tu" -> v.tu
-        "Il" -> v.il
-        "Nous" -> v.nous
-        "Vous" -> v.vous
-        "Ils" -> v.ils
-        _ -> v.je
+        "Tu" -> tu
+        "Il" -> il
+        "Nous" -> nous
+        "Vous" -> vous
+        "Ils" -> ils
+        "Infinitive" -> infinitive
+        _ -> je
       }
       #(pronoun, x.1)
     }),
   )
 }
 
-fn verb_list_decoder() -> decode.Decoder(dict.Dict(String, t.Verb)) {
-  decode.dict(decode.string, verb_decoder())
+fn sentence_order_decoder() -> decode.Decoder(t.SentenceOrder) {
+  use tense <- decode.field("tense", tense_decoder())
+  use is_reflexive <- decode.field("is_reflexive", decode.bool)
+  use is_negated <- decode.field("is_negated", decode.bool)
+  use grammar_units <- decode.field(
+    "grammar_units",
+    decode.list(grammar_unit_decoder()),
+  )
+  decode.success(t.SentenceOrder(
+    tense:,
+    is_reflexive:,
+    is_negated:,
+    grammar_units:,
+  ))
 }
 
-fn conjugation_list_decoder() {
-  decode.list(raw_conjugation_pattern_decoder())
+fn grammar_unit_decoder() -> decode.Decoder(t.GrammarUnit) {
+  use variant <- decode.then(decode.string)
+  case variant {
+    "Pronoun" -> decode.success(t.Pronoun)
+    "ReflexivePronoun" -> decode.success(t.ReflexivePronoun)
+    "AuxiliaryVerb" -> decode.success(t.AuxiliaryVerb)
+    // NOTE: we're handling all the main verb subtypes in this decoder for now. probably not futureproof
+    "MainVerbInfinitive" <> _ -> decode.success(t.MainVerb(t.Infinitive))
+    "MainVerbConjugated" <> _ -> decode.success(t.MainVerb(t.Conjugated))
+    "MainVerbParticiple" <> _ -> decode.success(t.MainVerb(t.Participle))
+    "Ne" -> decode.success(t.Ne)
+    "Pas" -> decode.success(t.Pas)
+    "Object" -> decode.success(t.Object)
+    _ -> panic as "unknown grammar unit"
+  }
 }
 
 fn verb_decoder() -> decode.Decoder(t.Verb) {
@@ -315,12 +378,11 @@ fn tense_decoder() -> decode.Decoder(t.Tense) {
     _ -> panic as "unknown tense!"
   }
 }
-
-fn gender_decoder() -> decode.Decoder(t.Gender) {
-  use variant <- decode.then(decode.string)
-  case variant {
-    "M" -> decode.success(t.M)
-    "F" -> decode.success(t.F)
-    _ -> panic as "unknown gender!"
-  }
-}
+// fn gender_decoder() -> decode.Decoder(t.Gender) {
+//   use variant <- decode.then(decode.string)
+//   case variant {
+//     "M" -> decode.success(t.M)
+//     "F" -> decode.success(t.F)
+//     _ -> panic as "unknown gender!"
+//   }
+// }

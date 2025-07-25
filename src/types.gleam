@@ -1,5 +1,3 @@
-import gleam/option.{type Option, None}
-
 pub type Context {
   Context(
     pronoun: Pronoun,
