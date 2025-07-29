@@ -1,7 +1,0 @@
----
-version: 1.3.0
-title: second person present non reflexive
-file: ./test/conjugator_test.gleam
-test_name: second_present_test
----
-tu cuisines

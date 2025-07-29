@@ -1,1 +1,0 @@
-This project is for learning Gleam. As such, I only want advice and feedback, but never any actual code modifications.
