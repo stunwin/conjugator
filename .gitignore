@@ -5,3 +5,6 @@ erl_crash.dump
 /src/gemini.md
 /src/tense_implementation_guide.md
 notes/
+app/build
+core/build
+
