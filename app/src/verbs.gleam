@@ -18,6 +18,10 @@ pub const ils = t.Ils("ils", "se", t.M)
 
 pub const elles = t.Elles("elles", "se", t.F)
 
+pub const pronounlist = [
+  "je", "tu", "il", "elle", "nous", "vous", "ils", "elles",
+]
+
 pub const conjugations = [
   t.ConjugationPattern(
     ending: t.Er,

@@ -263,14 +263,14 @@ var UtfCodepoint = class {
   }
 };
 var isBitArrayDeprecationMessagePrinted = {};
-function bitArrayPrintDeprecationWarning(name, message) {
-  if (isBitArrayDeprecationMessagePrinted[name]) {
+function bitArrayPrintDeprecationWarning(name2, message) {
+  if (isBitArrayDeprecationMessagePrinted[name2]) {
     return;
   }
   console.warn(
-    `Deprecated BitArray.${name} property used in JavaScript FFI code. ${message}.`
+    `Deprecated BitArray.${name2} property used in JavaScript FFI code. ${message}.`
   );
-  isBitArrayDeprecationMessagePrinted[name] = true;
+  isBitArrayDeprecationMessagePrinted[name2] = true;
 }
 function bitArraySlice(bitArray, start4, end) {
   end ??= bitArray.bitSize;
@@ -1363,342 +1363,6 @@ var Eq = class extends CustomType {
 var Gt = class extends CustomType {
 };
 
-// build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
-var DecodeError = class extends CustomType {
-  constructor(expected, found, path) {
-    super();
-    this.expected = expected;
-    this.found = found;
-    this.path = path;
-  }
-};
-var Decoder = class extends CustomType {
-  constructor(function$) {
-    super();
-    this.function = function$;
-  }
-};
-function run(data, decoder) {
-  let $ = decoder.function(data);
-  let maybe_invalid_data = $[0];
-  let errors = $[1];
-  if (errors instanceof Empty) {
-    return new Ok(maybe_invalid_data);
-  } else {
-    return new Error(errors);
-  }
-}
-function success(data) {
-  return new Decoder((_) => {
-    return [data, toList([])];
-  });
-}
-function map2(decoder, transformer) {
-  return new Decoder(
-    (d) => {
-      let $ = decoder.function(d);
-      let data = $[0];
-      let errors = $[1];
-      return [transformer(data), errors];
-    }
-  );
-}
-function run_decoders(loop$data, loop$failure, loop$decoders) {
-  while (true) {
-    let data = loop$data;
-    let failure2 = loop$failure;
-    let decoders = loop$decoders;
-    if (decoders instanceof Empty) {
-      return failure2;
-    } else {
-      let decoder = decoders.head;
-      let decoders$1 = decoders.tail;
-      let $ = decoder.function(data);
-      let layer = $;
-      let errors = $[1];
-      if (errors instanceof Empty) {
-        return layer;
-      } else {
-        loop$data = data;
-        loop$failure = failure2;
-        loop$decoders = decoders$1;
-      }
-    }
-  }
-}
-function one_of(first2, alternatives) {
-  return new Decoder(
-    (dynamic_data) => {
-      let $ = first2.function(dynamic_data);
-      let layer = $;
-      let errors = $[1];
-      if (errors instanceof Empty) {
-        return layer;
-      } else {
-        return run_decoders(dynamic_data, layer, alternatives);
-      }
-    }
-  );
-}
-function run_dynamic_function(data, name, f) {
-  let $ = f(data);
-  if ($ instanceof Ok) {
-    let data$1 = $[0];
-    return [data$1, toList([])];
-  } else {
-    let zero = $[0];
-    return [
-      zero,
-      toList([new DecodeError(name, classify_dynamic(data), toList([]))])
-    ];
-  }
-}
-function decode_int(data) {
-  return run_dynamic_function(data, "Int", int);
-}
-var int2 = /* @__PURE__ */ new Decoder(decode_int);
-function decode_string(data) {
-  return run_dynamic_function(data, "String", string);
-}
-var string2 = /* @__PURE__ */ new Decoder(decode_string);
-function push_path(layer, path) {
-  let decoder = one_of(
-    string2,
-    toList([
-      (() => {
-        let _pipe = int2;
-        return map2(_pipe, to_string);
-      })()
-    ])
-  );
-  let path$1 = map(
-    path,
-    (key) => {
-      let key$1 = identity(key);
-      let $ = run(key$1, decoder);
-      if ($ instanceof Ok) {
-        let key$2 = $[0];
-        return key$2;
-      } else {
-        return "<" + classify_dynamic(key$1) + ">";
-      }
-    }
-  );
-  let errors = map(
-    layer[1],
-    (error) => {
-      let _record = error;
-      return new DecodeError(
-        _record.expected,
-        _record.found,
-        append2(path$1, error.path)
-      );
-    }
-  );
-  return [layer[0], errors];
-}
-function index3(loop$path, loop$position, loop$inner, loop$data, loop$handle_miss) {
-  while (true) {
-    let path = loop$path;
-    let position = loop$position;
-    let inner = loop$inner;
-    let data = loop$data;
-    let handle_miss = loop$handle_miss;
-    if (path instanceof Empty) {
-      let _pipe = inner(data);
-      return push_path(_pipe, reverse(position));
-    } else {
-      let key = path.head;
-      let path$1 = path.tail;
-      let $ = index2(data, key);
-      if ($ instanceof Ok) {
-        let $1 = $[0];
-        if ($1 instanceof Some) {
-          let data$1 = $1[0];
-          loop$path = path$1;
-          loop$position = prepend(key, position);
-          loop$inner = inner;
-          loop$data = data$1;
-          loop$handle_miss = handle_miss;
-        } else {
-          return handle_miss(data, prepend(key, position));
-        }
-      } else {
-        let kind = $[0];
-        let $1 = inner(data);
-        let default$ = $1[0];
-        let _pipe = [
-          default$,
-          toList([new DecodeError(kind, classify_dynamic(data), toList([]))])
-        ];
-        return push_path(_pipe, reverse(position));
-      }
-    }
-  }
-}
-function subfield(field_path, field_decoder, next) {
-  return new Decoder(
-    (data) => {
-      let $ = index3(
-        field_path,
-        toList([]),
-        field_decoder.function,
-        data,
-        (data2, position) => {
-          let $12 = field_decoder.function(data2);
-          let default$ = $12[0];
-          let _pipe = [
-            default$,
-            toList([new DecodeError("Field", "Nothing", toList([]))])
-          ];
-          return push_path(_pipe, reverse(position));
-        }
-      );
-      let out = $[0];
-      let errors1 = $[1];
-      let $1 = next(out).function(data);
-      let out$1 = $1[0];
-      let errors2 = $1[1];
-      return [out$1, append2(errors1, errors2)];
-    }
-  );
-}
-
-// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
-var Nil = void 0;
-var NOT_FOUND = {};
-function identity(x) {
-  return x;
-}
-function to_string(term) {
-  return term.toString();
-}
-function string_length(string5) {
-  if (string5 === "") {
-    return 0;
-  }
-  const iterator = graphemes_iterator(string5);
-  if (iterator) {
-    let i = 0;
-    for (const _ of iterator) {
-      i++;
-    }
-    return i;
-  } else {
-    return string5.match(/./gsu).length;
-  }
-}
-var segmenter = void 0;
-function graphemes_iterator(string5) {
-  if (globalThis.Intl && Intl.Segmenter) {
-    segmenter ||= new Intl.Segmenter();
-    return segmenter.segment(string5)[Symbol.iterator]();
-  }
-}
-function starts_with(haystack, needle) {
-  return haystack.startsWith(needle);
-}
-var unicode_whitespaces = [
-  " ",
-  // Space
-  "	",
-  // Horizontal tab
-  "\n",
-  // Line feed
-  "\v",
-  // Vertical tab
-  "\f",
-  // Form feed
-  "\r",
-  // Carriage return
-  "\x85",
-  // Next line
-  "\u2028",
-  // Line separator
-  "\u2029"
-  // Paragraph separator
-].join("");
-var trim_start_regex = /* @__PURE__ */ new RegExp(
-  `^[${unicode_whitespaces}]*`
-);
-var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
-function new_map() {
-  return Dict.new();
-}
-function map_get(map4, key) {
-  const value2 = map4.get(key, NOT_FOUND);
-  if (value2 === NOT_FOUND) {
-    return new Error(Nil);
-  }
-  return new Ok(value2);
-}
-function map_insert(key, value2, map4) {
-  return map4.set(key, value2);
-}
-function classify_dynamic(data) {
-  if (typeof data === "string") {
-    return "String";
-  } else if (typeof data === "boolean") {
-    return "Bool";
-  } else if (data instanceof Result) {
-    return "Result";
-  } else if (data instanceof List) {
-    return "List";
-  } else if (data instanceof BitArray) {
-    return "BitArray";
-  } else if (data instanceof Dict) {
-    return "Dict";
-  } else if (Number.isInteger(data)) {
-    return "Int";
-  } else if (Array.isArray(data)) {
-    return `Array`;
-  } else if (typeof data === "number") {
-    return "Float";
-  } else if (data === null) {
-    return "Nil";
-  } else if (data === void 0) {
-    return "Nil";
-  } else {
-    const type = typeof data;
-    return type.charAt(0).toUpperCase() + type.slice(1);
-  }
-}
-function index2(data, key) {
-  if (data instanceof Dict || data instanceof WeakMap || data instanceof Map) {
-    const token2 = {};
-    const entry = data.get(key, token2);
-    if (entry === token2) return new Ok(new None());
-    return new Ok(new Some(entry));
-  }
-  const key_is_int = Number.isInteger(key);
-  if (key_is_int && key >= 0 && key < 8 && data instanceof List) {
-    let i = 0;
-    for (const value2 of data) {
-      if (i === key) return new Ok(new Some(value2));
-      i++;
-    }
-    return new Error("Indexable");
-  }
-  if (key_is_int && Array.isArray(data) || data && typeof data === "object" || data && Object.getPrototypeOf(data) === Object.prototype) {
-    if (key in data) return new Ok(new Some(data[key]));
-    return new Ok(new None());
-  }
-  return new Error(key_is_int ? "Indexable" : "Dict");
-}
-function int(data) {
-  if (Number.isInteger(data)) return new Ok(data);
-  return new Error(0);
-}
-function string(data) {
-  if (typeof data === "string") return new Ok(data);
-  return new Error("");
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/dict.mjs
-function insert(dict2, key, value2) {
-  return map_insert(key, value2, dict2);
-}
-
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Ascending = class extends CustomType {
 };
@@ -1754,10 +1418,10 @@ function append_loop(loop$first, loop$second) {
     }
   }
 }
-function append2(first2, second) {
+function append(first2, second) {
   return append_loop(reverse(first2), second);
 }
-function fold2(loop$list, loop$initial, loop$fun) {
+function fold(loop$list, loop$initial, loop$fun) {
   while (true) {
     let list4 = loop$list;
     let initial = loop$initial;
@@ -2127,6 +1791,372 @@ function concat2(strings) {
   return concat_loop(strings, "");
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
+var DecodeError = class extends CustomType {
+  constructor(expected, found, path) {
+    super();
+    this.expected = expected;
+    this.found = found;
+    this.path = path;
+  }
+};
+var Decoder = class extends CustomType {
+  constructor(function$) {
+    super();
+    this.function = function$;
+  }
+};
+function run(data, decoder) {
+  let $ = decoder.function(data);
+  let maybe_invalid_data = $[0];
+  let errors = $[1];
+  if (errors instanceof Empty) {
+    return new Ok(maybe_invalid_data);
+  } else {
+    return new Error(errors);
+  }
+}
+function success(data) {
+  return new Decoder((_) => {
+    return [data, toList([])];
+  });
+}
+function map2(decoder, transformer) {
+  return new Decoder(
+    (d) => {
+      let $ = decoder.function(d);
+      let data = $[0];
+      let errors = $[1];
+      return [transformer(data), errors];
+    }
+  );
+}
+function run_decoders(loop$data, loop$failure, loop$decoders) {
+  while (true) {
+    let data = loop$data;
+    let failure2 = loop$failure;
+    let decoders = loop$decoders;
+    if (decoders instanceof Empty) {
+      return failure2;
+    } else {
+      let decoder = decoders.head;
+      let decoders$1 = decoders.tail;
+      let $ = decoder.function(data);
+      let layer = $;
+      let errors = $[1];
+      if (errors instanceof Empty) {
+        return layer;
+      } else {
+        loop$data = data;
+        loop$failure = failure2;
+        loop$decoders = decoders$1;
+      }
+    }
+  }
+}
+function one_of(first2, alternatives) {
+  return new Decoder(
+    (dynamic_data) => {
+      let $ = first2.function(dynamic_data);
+      let layer = $;
+      let errors = $[1];
+      if (errors instanceof Empty) {
+        return layer;
+      } else {
+        return run_decoders(dynamic_data, layer, alternatives);
+      }
+    }
+  );
+}
+function run_dynamic_function(data, name2, f) {
+  let $ = f(data);
+  if ($ instanceof Ok) {
+    let data$1 = $[0];
+    return [data$1, toList([])];
+  } else {
+    let zero = $[0];
+    return [
+      zero,
+      toList([new DecodeError(name2, classify_dynamic(data), toList([]))])
+    ];
+  }
+}
+function decode_int(data) {
+  return run_dynamic_function(data, "Int", int);
+}
+var int2 = /* @__PURE__ */ new Decoder(decode_int);
+function decode_string(data) {
+  return run_dynamic_function(data, "String", string);
+}
+var string2 = /* @__PURE__ */ new Decoder(decode_string);
+function push_path(layer, path) {
+  let decoder = one_of(
+    string2,
+    toList([
+      (() => {
+        let _pipe = int2;
+        return map2(_pipe, to_string);
+      })()
+    ])
+  );
+  let path$1 = map(
+    path,
+    (key) => {
+      let key$1 = identity(key);
+      let $ = run(key$1, decoder);
+      if ($ instanceof Ok) {
+        let key$2 = $[0];
+        return key$2;
+      } else {
+        return "<" + classify_dynamic(key$1) + ">";
+      }
+    }
+  );
+  let errors = map(
+    layer[1],
+    (error) => {
+      let _record = error;
+      return new DecodeError(
+        _record.expected,
+        _record.found,
+        append(path$1, error.path)
+      );
+    }
+  );
+  return [layer[0], errors];
+}
+function index3(loop$path, loop$position, loop$inner, loop$data, loop$handle_miss) {
+  while (true) {
+    let path = loop$path;
+    let position = loop$position;
+    let inner = loop$inner;
+    let data = loop$data;
+    let handle_miss = loop$handle_miss;
+    if (path instanceof Empty) {
+      let _pipe = inner(data);
+      return push_path(_pipe, reverse(position));
+    } else {
+      let key = path.head;
+      let path$1 = path.tail;
+      let $ = index2(data, key);
+      if ($ instanceof Ok) {
+        let $1 = $[0];
+        if ($1 instanceof Some) {
+          let data$1 = $1[0];
+          loop$path = path$1;
+          loop$position = prepend(key, position);
+          loop$inner = inner;
+          loop$data = data$1;
+          loop$handle_miss = handle_miss;
+        } else {
+          return handle_miss(data, prepend(key, position));
+        }
+      } else {
+        let kind = $[0];
+        let $1 = inner(data);
+        let default$ = $1[0];
+        let _pipe = [
+          default$,
+          toList([new DecodeError(kind, classify_dynamic(data), toList([]))])
+        ];
+        return push_path(_pipe, reverse(position));
+      }
+    }
+  }
+}
+function subfield(field_path, field_decoder, next) {
+  return new Decoder(
+    (data) => {
+      let $ = index3(
+        field_path,
+        toList([]),
+        field_decoder.function,
+        data,
+        (data2, position) => {
+          let $12 = field_decoder.function(data2);
+          let default$ = $12[0];
+          let _pipe = [
+            default$,
+            toList([new DecodeError("Field", "Nothing", toList([]))])
+          ];
+          return push_path(_pipe, reverse(position));
+        }
+      );
+      let out = $[0];
+      let errors1 = $[1];
+      let $1 = next(out).function(data);
+      let out$1 = $1[0];
+      let errors2 = $1[1];
+      return [out$1, append(errors1, errors2)];
+    }
+  );
+}
+
+// build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
+var Nil = void 0;
+var NOT_FOUND = {};
+function identity(x) {
+  return x;
+}
+function to_string(term) {
+  return term.toString();
+}
+function starts_with(haystack, needle) {
+  return haystack.startsWith(needle);
+}
+var unicode_whitespaces = [
+  " ",
+  // Space
+  "	",
+  // Horizontal tab
+  "\n",
+  // Line feed
+  "\v",
+  // Vertical tab
+  "\f",
+  // Form feed
+  "\r",
+  // Carriage return
+  "\x85",
+  // Next line
+  "\u2028",
+  // Line separator
+  "\u2029"
+  // Paragraph separator
+].join("");
+var trim_start_regex = /* @__PURE__ */ new RegExp(
+  `^[${unicode_whitespaces}]*`
+);
+var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
+function new_map() {
+  return Dict.new();
+}
+function map_to_list(map4) {
+  return List.fromArray(map4.entries());
+}
+function map_get(map4, key) {
+  const value2 = map4.get(key, NOT_FOUND);
+  if (value2 === NOT_FOUND) {
+    return new Error(Nil);
+  }
+  return new Ok(value2);
+}
+function map_insert(key, value2, map4) {
+  return map4.set(key, value2);
+}
+function classify_dynamic(data) {
+  if (typeof data === "string") {
+    return "String";
+  } else if (typeof data === "boolean") {
+    return "Bool";
+  } else if (data instanceof Result) {
+    return "Result";
+  } else if (data instanceof List) {
+    return "List";
+  } else if (data instanceof BitArray) {
+    return "BitArray";
+  } else if (data instanceof Dict) {
+    return "Dict";
+  } else if (Number.isInteger(data)) {
+    return "Int";
+  } else if (Array.isArray(data)) {
+    return `Array`;
+  } else if (typeof data === "number") {
+    return "Float";
+  } else if (data === null) {
+    return "Nil";
+  } else if (data === void 0) {
+    return "Nil";
+  } else {
+    const type = typeof data;
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+function index2(data, key) {
+  if (data instanceof Dict || data instanceof WeakMap || data instanceof Map) {
+    const token2 = {};
+    const entry = data.get(key, token2);
+    if (entry === token2) return new Ok(new None());
+    return new Ok(new Some(entry));
+  }
+  const key_is_int = Number.isInteger(key);
+  if (key_is_int && key >= 0 && key < 8 && data instanceof List) {
+    let i = 0;
+    for (const value2 of data) {
+      if (i === key) return new Ok(new Some(value2));
+      i++;
+    }
+    return new Error("Indexable");
+  }
+  if (key_is_int && Array.isArray(data) || data && typeof data === "object" || data && Object.getPrototypeOf(data) === Object.prototype) {
+    if (key in data) return new Ok(new Some(data[key]));
+    return new Ok(new None());
+  }
+  return new Error(key_is_int ? "Indexable" : "Dict");
+}
+function int(data) {
+  if (Number.isInteger(data)) return new Ok(data);
+  return new Error(0);
+}
+function string(data) {
+  if (typeof data === "string") return new Ok(data);
+  return new Error("");
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/dict.mjs
+function insert(dict2, key, value2) {
+  return map_insert(key, value2, dict2);
+}
+function from_list_loop(loop$list, loop$initial) {
+  while (true) {
+    let list4 = loop$list;
+    let initial = loop$initial;
+    if (list4 instanceof Empty) {
+      return initial;
+    } else {
+      let rest = list4.tail;
+      let key = list4.head[0];
+      let value2 = list4.head[1];
+      loop$list = rest;
+      loop$initial = insert(initial, key, value2);
+    }
+  }
+}
+function from_list(list4) {
+  return from_list_loop(list4, new_map());
+}
+function reverse_and_concat(loop$remaining, loop$accumulator) {
+  while (true) {
+    let remaining = loop$remaining;
+    let accumulator = loop$accumulator;
+    if (remaining instanceof Empty) {
+      return accumulator;
+    } else {
+      let first2 = remaining.head;
+      let rest = remaining.tail;
+      loop$remaining = rest;
+      loop$accumulator = prepend(first2, accumulator);
+    }
+  }
+}
+function do_keys_loop(loop$list, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return reverse_and_concat(acc, toList([]));
+    } else {
+      let rest = list4.tail;
+      let key = list4.head[0];
+      loop$list = rest;
+      loop$acc = prepend(key, acc);
+    }
+  }
+}
+function keys(dict2) {
+  return do_keys_loop(map_to_list(dict2), toList([]));
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/result.mjs
 function is_ok(result) {
   if (result instanceof Ok) {
@@ -2202,26 +2232,26 @@ function compare3(a, b) {
 
 // build/dev/javascript/lustre/lustre/vdom/vattr.mjs
 var Attribute = class extends CustomType {
-  constructor(kind, name, value2) {
+  constructor(kind, name2, value2) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.value = value2;
   }
 };
 var Property = class extends CustomType {
-  constructor(kind, name, value2) {
+  constructor(kind, name2, value2) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.value = value2;
   }
 };
 var Event2 = class extends CustomType {
-  constructor(kind, name, handler, include, prevent_default, stop_propagation, immediate2, debounce, throttle) {
+  constructor(kind, name2, handler, include, prevent_default, stop_propagation, immediate2, debounce, throttle) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.handler = handler;
     this.include = include;
     this.prevent_default = prevent_default;
@@ -2371,15 +2401,15 @@ function prepare(attributes) {
   }
 }
 var attribute_kind = 0;
-function attribute(name, value2) {
-  return new Attribute(attribute_kind, name, value2);
+function attribute(name2, value2) {
+  return new Attribute(attribute_kind, name2, value2);
 }
 var property_kind = 1;
 var event_kind = 2;
-function event(name, handler, include, prevent_default, stop_propagation, immediate2, debounce, throttle) {
+function event(name2, handler, include, prevent_default, stop_propagation, immediate2, debounce, throttle) {
   return new Event2(
     event_kind,
-    name,
+    name2,
     handler,
     include,
     prevent_default,
@@ -2394,11 +2424,20 @@ var never = /* @__PURE__ */ new Never(never_kind);
 var always_kind = 2;
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute2(name, value2) {
-  return attribute(name, value2);
+function attribute2(name2, value2) {
+  return attribute(name2, value2);
 }
-function class$(name) {
-  return attribute2("class", name);
+function class$(name2) {
+  return attribute2("class", name2);
+}
+function for$(id) {
+  return attribute2("for", id);
+}
+function name(element_name) {
+  return attribute2("name", element_name);
+}
+function type_(control_type) {
+  return attribute2("type", control_type);
 }
 function value(control_value) {
   return attribute2("value", control_value);
@@ -2891,11 +2930,11 @@ function tick(events) {
     empty_list
   );
 }
-function do_remove_event(handlers, path, name) {
-  return remove(handlers, event2(path, name));
+function do_remove_event(handlers, path, name2) {
+  return remove(handlers, event2(path, name2));
 }
-function remove_event(events, path, name) {
-  let handlers = do_remove_event(events.handlers, path, name);
+function remove_event(events, path, name2) {
+  let handlers = do_remove_event(events.handlers, path, name2);
   let _record = events;
   return new Events(
     handlers,
@@ -2904,20 +2943,20 @@ function remove_event(events, path, name) {
   );
 }
 function remove_attributes(handlers, path, attributes) {
-  return fold2(
+  return fold(
     attributes,
     handlers,
     (events, attribute3) => {
       if (attribute3 instanceof Event2) {
-        let name = attribute3.name;
-        return do_remove_event(events, path, name);
+        let name2 = attribute3.name;
+        return do_remove_event(events, path, name2);
       } else {
         return events;
       }
     }
   );
 }
-function handle(events, path, name, event4) {
+function handle(events, path, name2, event4) {
   let next_dispatched_paths = prepend(path, events.next_dispatched_paths);
   let _block;
   let _record = events;
@@ -2929,7 +2968,7 @@ function handle(events, path, name, event4) {
   let events$1 = _block;
   let $ = get(
     events$1.handlers,
-    path + separator_event + name
+    path + separator_event + name2
   );
   if ($ instanceof Ok) {
     let handler = $[0];
@@ -2941,10 +2980,10 @@ function handle(events, path, name, event4) {
 function has_dispatched_events(events, path) {
   return matches(path, events.dispatched_paths);
 }
-function do_add_event(handlers, mapper, path, name, handler) {
+function do_add_event(handlers, mapper, path, name2, handler) {
   return insert3(
     handlers,
-    event2(path, name),
+    event2(path, name2),
     map2(
       handler,
       (handler2) => {
@@ -2958,8 +2997,8 @@ function do_add_event(handlers, mapper, path, name, handler) {
     )
   );
 }
-function add_event(events, mapper, path, name, handler) {
-  let handlers = do_add_event(events.handlers, mapper, path, name, handler);
+function add_event(events, mapper, path, name2, handler) {
+  let handlers = do_add_event(events.handlers, mapper, path, name2, handler);
   let _record = events;
   return new Events(
     handlers,
@@ -2968,14 +3007,14 @@ function add_event(events, mapper, path, name, handler) {
   );
 }
 function add_attributes(handlers, mapper, path, attributes) {
-  return fold2(
+  return fold(
     attributes,
     handlers,
     (events, attribute3) => {
       if (attribute3 instanceof Event2) {
-        let name = attribute3.name;
+        let name2 = attribute3.name;
         let handler = attribute3.handler;
-        return do_add_event(events, mapper, path, name, handler);
+        return do_add_event(events, mapper, path, name2, handler);
       } else {
         return events;
       }
@@ -3195,6 +3234,12 @@ function input(attrs) {
 function label(attrs, children) {
   return element2("label", attrs, children);
 }
+function option(attrs, label2) {
+  return element2("option", attrs, toList([text2(label2)]));
+}
+function select(attrs, children) {
+  return element2("select", attrs, children);
+}
 
 // build/dev/javascript/lustre/lustre/vdom/patch.mjs
 var Patch = class extends CustomType {
@@ -3363,9 +3408,9 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         if ($ instanceof Event2) {
           let prev = $;
           let old$1 = old.tail;
-          let name = $.name;
+          let name2 = $.name;
           let removed$1 = prepend(prev, removed);
-          let events$1 = remove_event(events, path, name);
+          let events$1 = remove_event(events, path, name2);
           loop$controlled = controlled;
           loop$path = path;
           loop$mapper = mapper;
@@ -3393,10 +3438,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       if ($ instanceof Event2) {
         let next = $;
         let new$1 = new$8.tail;
-        let name = $.name;
+        let name2 = $.name;
         let handler = $.handler;
         let added$1 = prepend(next, added);
-        let events$1 = add_event(events, mapper, path, name, handler);
+        let events$1 = add_event(events, mapper, path, name2, handler);
         loop$controlled = controlled;
         loop$path = path;
         loop$mapper = mapper;
@@ -3426,9 +3471,9 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       let $ = compare3(prev, next);
       if ($ instanceof Lt) {
         if (prev instanceof Event2) {
-          let name = prev.name;
+          let name2 = prev.name;
           let removed$1 = prepend(prev, removed);
-          let events$1 = remove_event(events, path, name);
+          let events$1 = remove_event(events, path, name2);
           loop$controlled = controlled;
           loop$path = path;
           loop$mapper = mapper;
@@ -3479,10 +3524,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
             loop$added = added$1;
             loop$removed = removed;
           } else if (prev instanceof Event2) {
-            let name = prev.name;
+            let name2 = prev.name;
             let added$1 = prepend(next, added);
             let removed$1 = prepend(prev, removed);
-            let events$1 = remove_event(events, path, name);
+            let events$1 = remove_event(events, path, name2);
             loop$controlled = controlled;
             loop$path = path;
             loop$mapper = mapper;
@@ -3546,10 +3591,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
             loop$added = added$1;
             loop$removed = removed;
           } else if (prev instanceof Event2) {
-            let name = prev.name;
+            let name2 = prev.name;
             let added$1 = prepend(next, added);
             let removed$1 = prepend(prev, removed);
-            let events$1 = remove_event(events, path, name);
+            let events$1 = remove_event(events, path, name2);
             loop$controlled = controlled;
             loop$path = path;
             loop$mapper = mapper;
@@ -3571,7 +3616,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
             loop$removed = removed$1;
           }
         } else if (prev instanceof Event2) {
-          let name = next.name;
+          let name2 = next.name;
           let handler = next.handler;
           let has_changes = !isEqual(
             prev.prevent_default,
@@ -3584,7 +3629,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
             _block = added;
           }
           let added$1 = _block;
-          let events$1 = add_event(events, mapper, path, name, handler);
+          let events$1 = add_event(events, mapper, path, name2, handler);
           loop$controlled = controlled;
           loop$path = path;
           loop$mapper = mapper;
@@ -3594,11 +3639,11 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$added = added$1;
           loop$removed = removed;
         } else {
-          let name = next.name;
+          let name2 = next.name;
           let handler = next.handler;
           let added$1 = prepend(next, added);
           let removed$1 = prepend(prev, removed);
-          let events$1 = add_event(events, mapper, path, name, handler);
+          let events$1 = add_event(events, mapper, path, name2, handler);
           loop$controlled = controlled;
           loop$path = path;
           loop$mapper = mapper;
@@ -3609,10 +3654,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           loop$removed = removed$1;
         }
       } else if (next instanceof Event2) {
-        let name = next.name;
+        let name2 = next.name;
         let handler = next.handler;
         let added$1 = prepend(next, added);
-        let events$1 = add_event(events, mapper, path, name, handler);
+        let events$1 = add_event(events, mapper, path, name2, handler);
         loop$controlled = controlled;
         loop$path = path;
         loop$mapper = mapper;
@@ -3856,12 +3901,12 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
             if ($2) {
               let remove_from = node_index$1 + next_count - moved_offset;
               let patch = remove2(remove_from, child.patch.removed);
-              _block = append2(
+              _block = append(
                 child.patch.changes,
                 prepend(patch, changes)
               );
             } else {
-              _block = append2(child.patch.changes, changes);
+              _block = append(child.patch.changes, changes);
             }
             let changes$1 = _block;
             loop$old = old$1;
@@ -4452,20 +4497,20 @@ var Reconciler = class {
   }
   #update(node, added, removed) {
     iterate(removed, (attribute3) => {
-      const name = attribute3.name;
-      if (node[meta].handlers.has(name)) {
-        node.removeEventListener(name, handleEvent);
-        node[meta].handlers.delete(name);
-        if (node[meta].throttles.has(name)) {
-          node[meta].throttles.delete(name);
+      const name2 = attribute3.name;
+      if (node[meta].handlers.has(name2)) {
+        node.removeEventListener(name2, handleEvent);
+        node[meta].handlers.delete(name2);
+        if (node[meta].throttles.has(name2)) {
+          node[meta].throttles.delete(name2);
         }
-        if (node[meta].debouncers.has(name)) {
-          clearTimeout(node[meta].debouncers.get(name).timeout);
-          node[meta].debouncers.delete(name);
+        if (node[meta].debouncers.has(name2)) {
+          clearTimeout(node[meta].debouncers.get(name2).timeout);
+          node[meta].debouncers.delete(name2);
         }
       } else {
-        node.removeAttribute(name);
-        SYNCED_ATTRIBUTES[name]?.removed?.(node, name);
+        node.removeAttribute(name2);
+        SYNCED_ATTRIBUTES[name2]?.removed?.(node, name2);
       }
     });
     iterate(added, (attribute3) => {
@@ -4513,7 +4558,7 @@ var Reconciler = class {
     const { debouncers, handlers, throttles } = node[meta];
     const {
       kind,
-      name,
+      name: name2,
       value: value2,
       prevent_default: prevent,
       stop_propagation: stop,
@@ -4525,42 +4570,42 @@ var Reconciler = class {
     switch (kind) {
       case attribute_kind: {
         const valueOrDefault = value2 ?? "";
-        if (name === "virtual:defaultValue") {
+        if (name2 === "virtual:defaultValue") {
           node.defaultValue = valueOrDefault;
           return;
         }
-        if (valueOrDefault !== node.getAttribute(name)) {
-          node.setAttribute(name, valueOrDefault);
+        if (valueOrDefault !== node.getAttribute(name2)) {
+          node.setAttribute(name2, valueOrDefault);
         }
-        SYNCED_ATTRIBUTES[name]?.added?.(node, value2);
+        SYNCED_ATTRIBUTES[name2]?.added?.(node, value2);
         break;
       }
       case property_kind:
-        node[name] = value2;
+        node[name2] = value2;
         break;
       case event_kind: {
-        if (handlers.has(name)) {
-          node.removeEventListener(name, handleEvent);
+        if (handlers.has(name2)) {
+          node.removeEventListener(name2, handleEvent);
         }
-        node.addEventListener(name, handleEvent, {
+        node.addEventListener(name2, handleEvent, {
           passive: prevent.kind === never_kind
         });
         if (throttleDelay > 0) {
-          const throttle = throttles.get(name) ?? {};
+          const throttle = throttles.get(name2) ?? {};
           throttle.delay = throttleDelay;
-          throttles.set(name, throttle);
+          throttles.set(name2, throttle);
         } else {
-          throttles.delete(name);
+          throttles.delete(name2);
         }
         if (debounceDelay > 0) {
-          const debounce = debouncers.get(name) ?? {};
+          const debounce = debouncers.get(name2) ?? {};
           debounce.delay = debounceDelay;
-          debouncers.set(name, debounce);
+          debouncers.set(name2, debounce);
         } else {
-          clearTimeout(debouncers.get(name)?.timeout);
-          debouncers.delete(name);
+          clearTimeout(debouncers.get(name2)?.timeout);
+          debouncers.delete(name2);
         }
-        handlers.set(name, (event4) => {
+        handlers.set(name2, (event4) => {
           if (prevent.kind === always_kind) event4.preventDefault();
           if (stop.kind === always_kind) event4.stopPropagation();
           const type = event4.type;
@@ -4675,20 +4720,20 @@ var createServerEvent = (event4, include = []) => {
   }
   return data;
 };
-var syncedBooleanAttribute = (name) => {
+var syncedBooleanAttribute = (name2) => {
   return {
     added(node) {
-      node[name] = true;
+      node[name2] = true;
     },
     removed(node) {
-      node[name] = false;
+      node[name2] = false;
     }
   };
 };
-var syncedAttribute = (name) => {
+var syncedAttribute = (name2) => {
   return {
     added(node, value2) {
-      node[name] = value2;
+      node[name2] = value2;
     }
   };
 };
@@ -4815,9 +4860,9 @@ var virtualiseAttributes = (node) => {
   return attributes;
 };
 var virtualiseAttribute = (attr) => {
-  const name = attr.localName;
+  const name2 = attr.localName;
   const value2 = attr.value;
-  return attribute2(name, value2);
+  return attribute2(name2, value2);
 };
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
@@ -4828,8 +4873,8 @@ var Runtime = class {
     this.#model = model;
     this.#view = view2;
     this.#update = update3;
-    this.#reconciler = new Reconciler(this.root, (event4, path, name) => {
-      const [events, result] = handle(this.#events, path, name, event4);
+    this.#reconciler = new Reconciler(this.root, (event4, path, name2) => {
+      const [events, result] = handle(this.#events, path, name2, event4);
       this.#events = events;
       if (result.isOk()) {
         const handler = result[0];
@@ -4951,7 +4996,7 @@ function listAppend(a, b) {
   } else if (b instanceof Empty) {
     return a;
   } else {
-    return append2(a, b);
+    return append(a, b);
   }
 }
 
@@ -4963,9 +5008,9 @@ var EffectDispatchedMessage = class extends CustomType {
   }
 };
 var EffectEmitEvent = class extends CustomType {
-  constructor(name, data) {
+  constructor(name2, data) {
     super();
-    this.name = name;
+    this.name = name2;
     this.data = data;
   }
 };
@@ -4997,11 +5042,11 @@ function new$6(options) {
     option_none,
     option_none
   );
-  return fold2(
+  return fold(
     options,
     init2,
-    (config, option) => {
-      return option.apply(config);
+    (config, option2) => {
+      return option2.apply(config);
     }
   );
 }
@@ -5082,35 +5127,35 @@ function start3(app, selector, start_args) {
 }
 
 // build/dev/javascript/lustre/lustre/event.mjs
-function is_immediate_event(name) {
-  if (name === "input") {
+function is_immediate_event(name2) {
+  if (name2 === "input") {
     return true;
-  } else if (name === "change") {
+  } else if (name2 === "change") {
     return true;
-  } else if (name === "focus") {
+  } else if (name2 === "focus") {
     return true;
-  } else if (name === "focusin") {
+  } else if (name2 === "focusin") {
     return true;
-  } else if (name === "focusout") {
+  } else if (name2 === "focusout") {
     return true;
-  } else if (name === "blur") {
+  } else if (name2 === "blur") {
     return true;
-  } else if (name === "select") {
+  } else if (name2 === "select") {
     return true;
   } else {
     return false;
   }
 }
-function on(name, handler) {
+function on(name2, handler) {
   return event(
-    name,
+    name2,
     map2(handler, (msg) => {
       return new Handler(false, false, msg);
     }),
     empty_list,
     never,
     never,
-    is_immediate_event(name),
+    is_immediate_event(name2),
     0,
     0
   );
@@ -5118,6 +5163,18 @@ function on(name, handler) {
 function on_input(msg) {
   return on(
     "input",
+    subfield(
+      toList(["target", "value"]),
+      string2,
+      (value2) => {
+        return success(msg(value2));
+      }
+    )
+  );
+}
+function on_change(msg) {
+  return on(
+    "change",
     subfield(
       toList(["target", "value"]),
       string2,
@@ -5136,34 +5193,215 @@ var Verb = class extends CustomType {
     this.ending = ending;
   }
 };
+var Er = class extends CustomType {
+};
+var Ir = class extends CustomType {
+};
+var Re = class extends CustomType {
+};
 var Irregular = class extends CustomType {
 };
 
-// build/dev/javascript/app/conjugator.mjs
-var emptyverb = /* @__PURE__ */ new Verb(
-  "empty",
-  /* @__PURE__ */ new Irregular()
-);
+// build/dev/javascript/app/verbs.mjs
+var pronounlist = /* @__PURE__ */ toList([
+  "je",
+  "tu",
+  "il",
+  "elle",
+  "nous",
+  "vous",
+  "ils",
+  "elles"
+]);
+var verblist = /* @__PURE__ */ toList([
+  ["manger", /* @__PURE__ */ new Verb("manger", /* @__PURE__ */ new Er())],
+  [
+    "avoir",
+    /* @__PURE__ */ new Verb("avoir", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "etre",
+    /* @__PURE__ */ new Verb("etre", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "aller",
+    /* @__PURE__ */ new Verb("aller", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "venir",
+    /* @__PURE__ */ new Verb("venir", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "arriver",
+    /* @__PURE__ */ new Verb("arriver", /* @__PURE__ */ new Er())
+  ],
+  ["partir", /* @__PURE__ */ new Verb("partir", /* @__PURE__ */ new Ir())],
+  ["entrer", /* @__PURE__ */ new Verb("entrer", /* @__PURE__ */ new Er())],
+  ["sortir", /* @__PURE__ */ new Verb("sortir", /* @__PURE__ */ new Ir())],
+  ["monter", /* @__PURE__ */ new Verb("monter", /* @__PURE__ */ new Er())],
+  [
+    "descendre",
+    /* @__PURE__ */ new Verb("descendre", /* @__PURE__ */ new Re())
+  ],
+  [
+    "na\xEEtre",
+    /* @__PURE__ */ new Verb("na\xEEtre", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "mourir",
+    /* @__PURE__ */ new Verb("mourir", /* @__PURE__ */ new Irregular())
+  ],
+  ["rester", /* @__PURE__ */ new Verb("rester", /* @__PURE__ */ new Er())],
+  [
+    "retourner",
+    /* @__PURE__ */ new Verb("retourner", /* @__PURE__ */ new Er())
+  ],
+  ["tomber", /* @__PURE__ */ new Verb("tomber", /* @__PURE__ */ new Er())],
+  ["passer", /* @__PURE__ */ new Verb("passer", /* @__PURE__ */ new Er())],
+  [
+    "devenir",
+    /* @__PURE__ */ new Verb("devenir", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "revenir",
+    /* @__PURE__ */ new Verb("revenir", /* @__PURE__ */ new Irregular())
+  ],
+  [
+    "rentrer",
+    /* @__PURE__ */ new Verb("rentrer", /* @__PURE__ */ new Er())
+  ],
+  ["aimer", /* @__PURE__ */ new Verb("aimer", /* @__PURE__ */ new Er())],
+  ["donner", /* @__PURE__ */ new Verb("donner", /* @__PURE__ */ new Er())],
+  [
+    "trouver",
+    /* @__PURE__ */ new Verb("trouver", /* @__PURE__ */ new Er())
+  ],
+  ["parler", /* @__PURE__ */ new Verb("parler", /* @__PURE__ */ new Er())],
+  [
+    "demander",
+    /* @__PURE__ */ new Verb("demander", /* @__PURE__ */ new Er())
+  ],
+  ["penser", /* @__PURE__ */ new Verb("penser", /* @__PURE__ */ new Er())],
+  ["aider", /* @__PURE__ */ new Verb("aider", /* @__PURE__ */ new Er())],
+  ["jouer", /* @__PURE__ */ new Verb("jouer", /* @__PURE__ */ new Er())],
+  [
+    "regarder",
+    /* @__PURE__ */ new Verb("regarder", /* @__PURE__ */ new Er())
+  ],
+  [
+    "travailler",
+    /* @__PURE__ */ new Verb("travailler", /* @__PURE__ */ new Er())
+  ],
+  ["finir", /* @__PURE__ */ new Verb("finir", /* @__PURE__ */ new Ir())],
+  [
+    "choisir",
+    /* @__PURE__ */ new Verb("choisir", /* @__PURE__ */ new Ir())
+  ],
+  [
+    "r\xE9ussir",
+    /* @__PURE__ */ new Verb("r\xE9ussir", /* @__PURE__ */ new Ir())
+  ],
+  [
+    "remplir",
+    /* @__PURE__ */ new Verb("remplir", /* @__PURE__ */ new Ir())
+  ],
+  [
+    "grandir",
+    /* @__PURE__ */ new Verb("grandir", /* @__PURE__ */ new Ir())
+  ],
+  [
+    "maigrir",
+    /* @__PURE__ */ new Verb("maigrir", /* @__PURE__ */ new Ir())
+  ],
+  ["rougir", /* @__PURE__ */ new Verb("rougir", /* @__PURE__ */ new Ir())],
+  ["punir", /* @__PURE__ */ new Verb("punir", /* @__PURE__ */ new Ir())],
+  [
+    "r\xE9fl\xE9chir",
+    /* @__PURE__ */ new Verb("r\xE9fl\xE9chir", /* @__PURE__ */ new Ir())
+  ],
+  ["ob\xE9ir", /* @__PURE__ */ new Verb("ob\xE9ir", /* @__PURE__ */ new Ir())],
+  ["vendre", /* @__PURE__ */ new Verb("vendre", /* @__PURE__ */ new Re())],
+  [
+    "attendre",
+    /* @__PURE__ */ new Verb("attendre", /* @__PURE__ */ new Re())
+  ],
+  ["perdre", /* @__PURE__ */ new Verb("perdre", /* @__PURE__ */ new Re())],
+  [
+    "r\xE9pondre",
+    /* @__PURE__ */ new Verb("r\xE9pondre", /* @__PURE__ */ new Re())
+  ],
+  [
+    "entendre",
+    /* @__PURE__ */ new Verb("entendre", /* @__PURE__ */ new Re())
+  ],
+  [
+    "descendre",
+    /* @__PURE__ */ new Verb("descendre", /* @__PURE__ */ new Re())
+  ],
+  ["fondre", /* @__PURE__ */ new Verb("fondre", /* @__PURE__ */ new Re())],
+  [
+    "confondre",
+    /* @__PURE__ */ new Verb("confondre", /* @__PURE__ */ new Re())
+  ],
+  ["rendre", /* @__PURE__ */ new Verb("rendre", /* @__PURE__ */ new Re())],
+  [
+    "d\xE9pendre",
+    /* @__PURE__ */ new Verb("d\xE9pendre", /* @__PURE__ */ new Re())
+  ],
+  [
+    "ERROR",
+    /* @__PURE__ */ new Verb("ERROR", /* @__PURE__ */ new Irregular())
+  ]
+]);
 
 // build/dev/javascript/app/app.mjs
 var FILEPATH = "src/app.gleam";
-var UserUpdatedName = class extends CustomType {
+var Model = class extends CustomType {
+  constructor(verb, pronoun) {
+    super();
+    this.verb = verb;
+    this.pronoun = pronoun;
+  }
+};
+var UserSelectVerb = class extends CustomType {
+  constructor($0) {
+    super();
+    this[0] = $0;
+  }
+};
+var UserSelectPronoun = class extends CustomType {
   constructor($0) {
     super();
     this[0] = $0;
   }
 };
 function init(_) {
-  return emptyverb.infinitive;
+  return new Model("noverb", "nopro");
 }
 function update2(model, msg) {
-  let name = msg[0];
-  let $ = string_length(name) <= 10;
-  if ($) {
-    return name;
+  if (msg instanceof UserSelectVerb) {
+    let verb = msg[0];
+    let _record = model;
+    return new Model(verb, _record.pronoun);
   } else {
-    return model;
+    let pronoun = msg[0];
+    let _record = model;
+    return new Model(_record.verb, pronoun);
   }
+}
+function verb_dropdown() {
+  let _pipe = keys(from_list(verblist));
+  return map(_pipe, (x) => {
+    return option(toList([]), x);
+  });
+}
+function pronoun_dropdown() {
+  return map(
+    pronounlist,
+    (x) => {
+      return option(toList([]), x);
+    }
+  );
 }
 function view(model) {
   echo("test", "src/app.gleam", 50);
@@ -5173,23 +5411,48 @@ function view(model) {
       label(
         toList([class$("flex gap-2")]),
         toList([
-          span(toList([]), toList([text3("Enter a name: ")])),
-          input(
+          span(
+            toList([]),
+            toList([text3(model.pronoun + " " + model.verb)])
+          ),
+          p(
+            toList([]),
             toList([
-              value(model),
-              on_input((var0) => {
-                return new UserUpdatedName(var0);
-              }),
-              class$("border border-slate-400 px-1 rounded"),
-              class$("focus:outline-none focus:border-blue-500")
+              select(
+                toList([
+                  on_change((x) => {
+                    return new UserSelectPronoun(x);
+                  })
+                ]),
+                pronoun_dropdown()
+              ),
+              select(
+                toList([
+                  on_change((x) => {
+                    return new UserSelectVerb(x);
+                  })
+                ]),
+                verb_dropdown()
+              ),
+              input(
+                toList([
+                  on_input((x) => {
+                    return new UserSelectPronoun(x);
+                  }),
+                  type_("radio"),
+                  name("tense"),
+                  value("thingie")
+                ])
+              ),
+              label(
+                toList([for$("radio")]),
+                toList([text3("thingie")])
+              )
             ])
           )
         ])
       ),
-      p(
-        toList([]),
-        toList([text3("Hello there, "), text3(model), text3("!")])
-      )
+      p(toList([]), toList([text3("!")]))
     ])
   );
 }
@@ -5201,10 +5464,10 @@ function main() {
       "let_assert",
       FILEPATH,
       "app",
-      14,
+      18,
       "main",
       "Pattern match failed, no pattern matched the value.",
-      { value: $, start: 388, end: 437, pattern_start: 399, pattern_end: 404 }
+      { value: $, start: 465, end: 514, pattern_start: 476, pattern_end: 481 }
     );
   }
   return void 0;
@@ -5273,13 +5536,13 @@ function echo$inspectCustomType(record) {
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
 function echo$inspectObject(v) {
-  const name = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
   const props = [];
   for (const k of Object.keys(v)) {
     props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
   }
   const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name === "Object" ? "" : name + " ";
+  const head = name2 === "Object" ? "" : name2 + " ";
   return `//js(${head}{${body}})`;
 }
 function echo$inspect(v) {
