@@ -31,6 +31,7 @@ type Model {
     reflexive: Bool,
     negated: Bool,
     output: String,
+    debug: Bool,
   )
 }
 
@@ -42,6 +43,7 @@ fn init(_) -> Model {
     reflexive: False,
     negated: False,
     output: "hi there!",
+    debug: False,
   )
 }
 
@@ -53,6 +55,7 @@ type Msg {
   UserSelectTense(String)
   UserCheckedBox(value: String, bool: Bool)
   UserClickSubmit
+  UserClickDebug
 }
 
 fn update(model: Model, msg: Msg) -> Model {
@@ -74,6 +77,7 @@ fn update(model: Model, msg: Msg) -> Model {
       }
     }
     UserClickSubmit -> Model(..model, output: send_to_conjugator(model))
+    UserClickDebug -> Model(..model, debug: bool.negate(model.debug))
   }
 }
 
@@ -119,7 +123,10 @@ fn view(model: Model) -> Element(Msg) {
           ),
         ],
         [
-          html.span([], [html.text(render_model(model))]),
+          html.span([], case model.debug {
+            True -> [html.text(render_model(model))]
+            False -> []
+          }),
           html.div(
             [
               attribute.class(
@@ -180,6 +187,7 @@ fn view(model: Model) -> Element(Msg) {
           ),
           html.div([attribute.class("absolute bottom-0 left-0 right-0 z-0")], [
             html.img([
+              event.on_click(UserClickDebug),
               attribute.class(
                 "mx-auto max-h-[calc(100vh-300px)] object-contain",
               ),

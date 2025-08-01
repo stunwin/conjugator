@@ -1346,6 +1346,9 @@ var Dict = class _Dict {
 var unequalDictSymbol = /* @__PURE__ */ Symbol();
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function negate(bool4) {
+  return !bool4;
+}
 function to_string(bool4) {
   if (bool4) {
     return "True";
@@ -6433,7 +6436,7 @@ var emptyverb = /* @__PURE__ */ new Verb(
 // build/dev/javascript/app/app.mjs
 var FILEPATH = "src/app.gleam";
 var Model = class extends CustomType {
-  constructor(verb, pronoun, tense, reflexive, negated, output) {
+  constructor(verb, pronoun, tense, reflexive, negated, output, debug) {
     super();
     this.verb = verb;
     this.pronoun = pronoun;
@@ -6441,6 +6444,7 @@ var Model = class extends CustomType {
     this.reflexive = reflexive;
     this.negated = negated;
     this.output = output;
+    this.debug = debug;
   }
 };
 var UserSelectVerb = class extends CustomType {
@@ -6470,8 +6474,18 @@ var UserCheckedBox = class extends CustomType {
 };
 var UserClickSubmit = class extends CustomType {
 };
+var UserClickDebug = class extends CustomType {
+};
 function init(_) {
-  return new Model("manger", "je", new Present(), false, false, "hi there!");
+  return new Model(
+    "manger",
+    "je",
+    new Present(),
+    false,
+    false,
+    "hi there!",
+    false
+  );
 }
 function send_to_conjugator(model) {
   let _block;
@@ -6514,7 +6528,8 @@ function update2(model, msg) {
       _record.tense,
       _record.reflexive,
       _record.negated,
-      _record.output
+      _record.output,
+      _record.debug
     );
   } else if (msg instanceof UserSelectPronoun) {
     let pronoun = msg[0];
@@ -6525,7 +6540,8 @@ function update2(model, msg) {
       _record.tense,
       _record.reflexive,
       _record.negated,
-      _record.output
+      _record.output,
+      _record.debug
     );
   } else if (msg instanceof UserSelectTense) {
     let tense = msg[0];
@@ -6537,7 +6553,8 @@ function update2(model, msg) {
         new FuturProche(),
         _record.reflexive,
         _record.negated,
-        _record.output
+        _record.output,
+        _record.debug
       );
     } else if (tense === "Passe Compose") {
       let _record = model;
@@ -6547,7 +6564,8 @@ function update2(model, msg) {
         new PasseCompose(),
         _record.reflexive,
         _record.negated,
-        _record.output
+        _record.output,
+        _record.debug
       );
     } else {
       let _record = model;
@@ -6557,7 +6575,8 @@ function update2(model, msg) {
         new Present(),
         _record.reflexive,
         _record.negated,
-        _record.output
+        _record.output,
+        _record.debug
       );
     }
   } else if (msg instanceof UserCheckedBox) {
@@ -6571,7 +6590,8 @@ function update2(model, msg) {
         _record.tense,
         bool4,
         _record.negated,
-        _record.output
+        _record.output,
+        _record.debug
       );
     } else if (value2 === "negated") {
       let _record = model;
@@ -6581,11 +6601,23 @@ function update2(model, msg) {
         _record.tense,
         _record.reflexive,
         bool4,
-        _record.output
+        _record.output,
+        _record.debug
       );
     } else {
       return model;
     }
+  } else if (msg instanceof UserClickSubmit) {
+    let _record = model;
+    return new Model(
+      _record.verb,
+      _record.pronoun,
+      _record.tense,
+      _record.reflexive,
+      _record.negated,
+      send_to_conjugator(model),
+      _record.debug
+    );
   } else {
     let _record = model;
     return new Model(
@@ -6594,7 +6626,8 @@ function update2(model, msg) {
       _record.tense,
       _record.reflexive,
       _record.negated,
-      send_to_conjugator(model)
+      _record.output,
+      negate(model.debug)
     );
   }
 }
@@ -6678,7 +6711,7 @@ function pronoun_dropdown() {
   );
 }
 function view(model) {
-  echo("test", "src/app.gleam", 106);
+  echo("test", "src/app.gleam", 110);
   return div(
     toList([
       class$(
@@ -6694,7 +6727,17 @@ function view(model) {
           )
         ]),
         toList([
-          span(toList([]), toList([text3(render_model(model))])),
+          span(
+            toList([]),
+            (() => {
+              let $ = model.debug;
+              if ($) {
+                return toList([text3(render_model(model))]);
+              } else {
+                return toList([]);
+              }
+            })()
+          ),
           div(
             toList([
               class$(
@@ -6779,6 +6822,7 @@ function view(model) {
             toList([
               img(
                 toList([
+                  on_click(new UserClickDebug()),
                   class$(
                     "mx-auto max-h-[calc(100vh-300px)] object-contain"
                   ),
