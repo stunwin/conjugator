@@ -1345,6 +1345,22 @@ var Dict = class _Dict {
 };
 var unequalDictSymbol = /* @__PURE__ */ Symbol();
 
+// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function to_string(bool4) {
+  if (bool4) {
+    return "True";
+  } else {
+    return "False";
+  }
+}
+function guard(requirement, consequence, alternative) {
+  if (requirement) {
+    return consequence;
+  } else {
+    return alternative();
+  }
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
 var Some = class extends CustomType {
   constructor($0) {
@@ -1385,6 +1401,24 @@ function reverse_and_prepend(loop$prefix, loop$suffix) {
 function reverse(list4) {
   return reverse_and_prepend(list4, toList([]));
 }
+function contains(loop$list, loop$elem) {
+  while (true) {
+    let list4 = loop$list;
+    let elem = loop$elem;
+    if (list4 instanceof Empty) {
+      return false;
+    } else {
+      let first$1 = list4.head;
+      if (isEqual(first$1, elem)) {
+        return true;
+      } else {
+        let rest$1 = list4.tail;
+        loop$list = rest$1;
+        loop$elem = elem;
+      }
+    }
+  }
+}
 function map_loop(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list4 = loop$list;
@@ -1403,6 +1437,32 @@ function map_loop(loop$list, loop$fun, loop$acc) {
 }
 function map(list4, fun) {
   return map_loop(list4, fun, toList([]));
+}
+function try_map_loop(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list4 instanceof Empty) {
+      return new Ok(reverse(acc));
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = fun(first$1);
+      if ($ instanceof Ok) {
+        let first$2 = $[0];
+        loop$list = rest$1;
+        loop$fun = fun;
+        loop$acc = prepend(first$2, acc);
+      } else {
+        let error = $[0];
+        return new Error(error);
+      }
+    }
+  }
+}
+function try_map(list4, fun) {
+  return try_map_loop(list4, fun, toList([]));
 }
 function append_loop(loop$first, loop$second) {
   while (true) {
@@ -1434,6 +1494,45 @@ function fold(loop$list, loop$initial, loop$fun) {
       loop$list = rest$1;
       loop$initial = fun(initial, first$1);
       loop$fun = fun;
+    }
+  }
+}
+function find2(loop$list, loop$is_desired) {
+  while (true) {
+    let list4 = loop$list;
+    let is_desired = loop$is_desired;
+    if (list4 instanceof Empty) {
+      return new Error(void 0);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = is_desired(first$1);
+      if ($) {
+        return new Ok(first$1);
+      } else {
+        loop$list = rest$1;
+        loop$is_desired = is_desired;
+      }
+    }
+  }
+}
+function find_map(loop$list, loop$fun) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    if (list4 instanceof Empty) {
+      return new Error(void 0);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = fun(first$1);
+      if ($ instanceof Ok) {
+        let first$2 = $[0];
+        return new Ok(first$2);
+      } else {
+        loop$list = rest$1;
+        loop$fun = fun;
+      }
     }
   }
 }
@@ -1771,8 +1870,50 @@ function sort(list4, compare4) {
     }
   }
 }
+function key_find(keyword_list, desired_key) {
+  return find_map(
+    keyword_list,
+    (keyword) => {
+      let key = keyword[0];
+      let value2 = keyword[1];
+      let $ = isEqual(key, desired_key);
+      if ($) {
+        return new Ok(value2);
+      } else {
+        return new Error(void 0);
+      }
+    }
+  );
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function slice(string5, idx, len) {
+  let $ = len < 0;
+  if ($) {
+    return "";
+  } else {
+    let $1 = idx < 0;
+    if ($1) {
+      let translated_idx = string_length(string5) + idx;
+      let $2 = translated_idx < 0;
+      if ($2) {
+        return "";
+      } else {
+        return string_slice(string5, translated_idx, len);
+      }
+    } else {
+      return string_slice(string5, idx, len);
+    }
+  }
+}
+function drop_end(string5, num_graphemes) {
+  let $ = num_graphemes < 0;
+  if ($) {
+    return string5;
+  } else {
+    return slice(string5, 0, string_length(string5) - num_graphemes);
+  }
+}
 function concat_loop(loop$strings, loop$accumulator) {
   while (true) {
     let strings = loop$strings;
@@ -1789,6 +1930,32 @@ function concat_loop(loop$strings, loop$accumulator) {
 }
 function concat2(strings) {
   return concat_loop(strings, "");
+}
+function first(string5) {
+  let $ = pop_grapheme(string5);
+  if ($ instanceof Ok) {
+    let first$1 = $[0][0];
+    return new Ok(first$1);
+  } else {
+    let e = $[0];
+    return new Error(e);
+  }
+}
+function last(string5) {
+  let $ = pop_grapheme(string5);
+  if ($ instanceof Ok) {
+    let $1 = $[0][1];
+    if ($1 === "") {
+      let first$1 = $[0][0];
+      return new Ok(first$1);
+    } else {
+      let rest = $1;
+      return new Ok(slice(rest, -1, 1));
+    }
+  } else {
+    let e = $[0];
+    return new Error(e);
+  }
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/dynamic/decode.mjs
@@ -1868,6 +2035,11 @@ function one_of(first2, alternatives) {
     }
   );
 }
+function decode_error(expected, found) {
+  return toList([
+    new DecodeError(expected, classify_dynamic(found), toList([]))
+  ]);
+}
 function run_dynamic_function(data, name2, f) {
   let $ = f(data);
   if ($ instanceof Ok) {
@@ -1881,9 +2053,23 @@ function run_dynamic_function(data, name2, f) {
     ];
   }
 }
+function decode_bool(data) {
+  let $ = isEqual(identity(true), data);
+  if ($) {
+    return [true, toList([])];
+  } else {
+    let $1 = isEqual(identity(false), data);
+    if ($1) {
+      return [false, toList([])];
+    } else {
+      return [false, decode_error("Bool", data)];
+    }
+  }
+}
 function decode_int(data) {
   return run_dynamic_function(data, "Int", int);
 }
+var bool = /* @__PURE__ */ new Decoder(decode_bool);
 var int2 = /* @__PURE__ */ new Decoder(decode_int);
 function decode_string(data) {
   return run_dynamic_function(data, "String", string);
@@ -1895,7 +2081,7 @@ function push_path(layer, path) {
     toList([
       (() => {
         let _pipe = int2;
-        return map2(_pipe, to_string);
+        return map2(_pipe, to_string2);
       })()
     ])
   );
@@ -1998,8 +2184,66 @@ var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
-function to_string(term) {
+function to_string2(term) {
   return term.toString();
+}
+function string_length(string5) {
+  if (string5 === "") {
+    return 0;
+  }
+  const iterator = graphemes_iterator(string5);
+  if (iterator) {
+    let i = 0;
+    for (const _ of iterator) {
+      i++;
+    }
+    return i;
+  } else {
+    return string5.match(/./gsu).length;
+  }
+}
+var segmenter = void 0;
+function graphemes_iterator(string5) {
+  if (globalThis.Intl && Intl.Segmenter) {
+    segmenter ||= new Intl.Segmenter();
+    return segmenter.segment(string5)[Symbol.iterator]();
+  }
+}
+function pop_grapheme(string5) {
+  let first2;
+  const iterator = graphemes_iterator(string5);
+  if (iterator) {
+    first2 = iterator.next().value?.segment;
+  } else {
+    first2 = string5.match(/./su)?.[0];
+  }
+  if (first2) {
+    return new Ok([first2, string5.slice(first2.length)]);
+  } else {
+    return new Error(Nil);
+  }
+}
+function string_slice(string5, idx, len) {
+  if (len <= 0 || idx >= string5.length) {
+    return "";
+  }
+  const iterator = graphemes_iterator(string5);
+  if (iterator) {
+    while (idx-- > 0) {
+      iterator.next();
+    }
+    let result = "";
+    while (len-- > 0) {
+      const v = iterator.next().value;
+      if (v === void 0) {
+        break;
+      }
+      result += v.segment;
+    }
+    return result;
+  } else {
+    return string5.match(/./gsu).slice(idx, idx + len).join("");
+  }
 }
 function starts_with(haystack, needle) {
   return haystack.startsWith(needle);
@@ -2165,13 +2409,35 @@ function is_ok(result) {
     return false;
   }
 }
-
-// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
-function guard(requirement, consequence, alternative) {
-  if (requirement) {
-    return consequence;
+function map3(result, fun) {
+  if (result instanceof Ok) {
+    let x = result[0];
+    return new Ok(fun(x));
   } else {
-    return alternative();
+    let e = result[0];
+    return new Error(e);
+  }
+}
+function try$(result, fun) {
+  if (result instanceof Ok) {
+    let x = result[0];
+    return fun(x);
+  } else {
+    let e = result[0];
+    return new Error(e);
+  }
+}
+function all(results) {
+  return try_map(results, (result) => {
+    return result;
+  });
+}
+function replace_error(result, error) {
+  if (result instanceof Ok) {
+    let x = result[0];
+    return new Ok(x);
+  } else {
+    return new Error(error);
   }
 }
 
@@ -2190,7 +2456,7 @@ var Set2 = class extends CustomType {
 function new$() {
   return new Set2(new_map());
 }
-function contains(set, member) {
+function contains2(set, member) {
   let _pipe = set.dict;
   let _pipe$1 = map_get(_pipe, member);
   return is_ok(_pipe$1);
@@ -2430,6 +2696,18 @@ function attribute2(name2, value2) {
 function class$(name2) {
   return attribute2("class", name2);
 }
+function style(property3, value2) {
+  if (property3 === "") {
+    return class$("");
+  } else if (value2 === "") {
+    return class$("");
+  } else {
+    return attribute2("style", property3 + ":" + value2 + ";");
+  }
+}
+function src(url) {
+  return attribute2("src", url);
+}
 function for$(id) {
   return attribute2("for", id);
 }
@@ -2550,19 +2828,19 @@ function do_to_string(loop$path, loop$acc) {
       loop$path = parent;
       loop$acc = prepend(
         separator_element,
-        prepend(to_string(index4), acc)
+        prepend(to_string2(index4), acc)
       );
     }
   }
 }
-function to_string2(path) {
+function to_string3(path) {
   return do_to_string(path, toList([]));
 }
 function matches(path, candidates) {
   if (candidates instanceof Empty) {
     return false;
   } else {
-    return do_matches(to_string2(path), candidates);
+    return do_matches(to_string3(path), candidates);
   }
 }
 var separator_event = "\n";
@@ -2709,7 +2987,7 @@ function set_fragment_key(loop$key, loop$children, loop$index, loop$new_children
         let node = $;
         if (node.key === "") {
           let children$1 = children.tail;
-          let child_key = key + "::" + to_string(index4);
+          let child_key = key + "::" + to_string2(index4);
           let $1 = set_fragment_key(
             child_key,
             node.children,
@@ -3222,11 +3500,14 @@ function text3(content) {
 function div(attrs, children) {
   return element2("div", attrs, children);
 }
-function p(attrs, children) {
-  return element2("p", attrs, children);
-}
 function span(attrs, children) {
   return element2("span", attrs, children);
+}
+function img(attrs) {
+  return element2("img", attrs, empty_list);
+}
+function button(attrs, children) {
+  return element2("button", attrs, children);
 }
 function input(attrs) {
   return element2("input", attrs, empty_list);
@@ -3706,7 +3987,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         let prev = old.head;
         let old$1 = old.tail;
         let _block;
-        let $ = prev.key === "" || !contains(moved, prev.key);
+        let $ = prev.key === "" || !contains2(moved, prev.key);
         if ($) {
           _block = removed + advance(prev);
         } else {
@@ -3751,7 +4032,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         let old_remaining = old.tail;
         let next_did_exist = get(old_keyed, next.key);
         let prev_does_exist = get(new_keyed, prev.key);
-        let prev_has_moved = contains(moved, prev.key);
+        let prev_has_moved = contains2(moved, prev.key);
         if (next_did_exist instanceof Ok) {
           if (prev_does_exist instanceof Ok) {
             if (prev_has_moved) {
@@ -5160,6 +5441,9 @@ function on(name2, handler) {
     0
   );
 }
+function on_click(msg) {
+  return on("click", success(msg));
+}
 function on_input(msg) {
   return on(
     "input",
@@ -5184,8 +5468,70 @@ function on_change(msg) {
     )
   );
 }
+function on_check(msg) {
+  return on(
+    "change",
+    subfield(
+      toList(["target", "checked"]),
+      bool,
+      (checked) => {
+        return success(msg(checked));
+      }
+    )
+  );
+}
 
 // build/dev/javascript/app/types.mjs
+var Context = class extends CustomType {
+  constructor(pronoun, tense, verblookup, verb, is_reflexive, is_negated) {
+    super();
+    this.pronoun = pronoun;
+    this.tense = tense;
+    this.verblookup = verblookup;
+    this.verb = verb;
+    this.is_reflexive = is_reflexive;
+    this.is_negated = is_negated;
+  }
+};
+var ConjugationPattern = class extends CustomType {
+  constructor(tense, ending, suffixes) {
+    super();
+    this.tense = tense;
+    this.ending = ending;
+    this.suffixes = suffixes;
+  }
+};
+var SentenceOrder = class extends CustomType {
+  constructor(tense, is_reflexive, is_negated, grammar_units) {
+    super();
+    this.tense = tense;
+    this.is_reflexive = is_reflexive;
+    this.is_negated = is_negated;
+    this.grammar_units = grammar_units;
+  }
+};
+var Pronoun = class extends CustomType {
+};
+var ReflexivePronoun = class extends CustomType {
+};
+var MainVerb = class extends CustomType {
+  constructor($0) {
+    super();
+    this[0] = $0;
+  }
+};
+var AuxiliaryVerb = class extends CustomType {
+};
+var Ne = class extends CustomType {
+};
+var Pas = class extends CustomType {
+};
+var Infinitive = class extends CustomType {
+};
+var Conjugated = class extends CustomType {
+};
+var Participle = class extends CustomType {
+};
 var Verb = class extends CustomType {
   constructor(infinitive2, ending) {
     super();
@@ -5201,8 +5547,127 @@ var Re = class extends CustomType {
 };
 var Irregular = class extends CustomType {
 };
+var Present = class extends CustomType {
+};
+var PasseCompose = class extends CustomType {
+};
+var FuturProche = class extends CustomType {
+};
+var Je = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Tu = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Il = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Elle = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Nous = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Vous = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Ils = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var Elles = class extends CustomType {
+  constructor(string5, reflexive, gender) {
+    super();
+    this.string = string5;
+    this.reflexive = reflexive;
+    this.gender = gender;
+  }
+};
+var M = class extends CustomType {
+};
+var F = class extends CustomType {
+};
 
 // build/dev/javascript/app/verbs.mjs
+var infinitive = /* @__PURE__ */ new Je(
+  "",
+  "",
+  /* @__PURE__ */ new M()
+);
+var je = /* @__PURE__ */ new Je(
+  "je",
+  "me",
+  /* @__PURE__ */ new M()
+);
+var tu = /* @__PURE__ */ new Tu(
+  "tu",
+  "te",
+  /* @__PURE__ */ new M()
+);
+var il = /* @__PURE__ */ new Il(
+  "il",
+  "se",
+  /* @__PURE__ */ new M()
+);
+var elle = /* @__PURE__ */ new Elle(
+  "elle",
+  "se",
+  /* @__PURE__ */ new F()
+);
+var nous = /* @__PURE__ */ new Nous(
+  "nous",
+  "nous",
+  /* @__PURE__ */ new M()
+);
+var vous = /* @__PURE__ */ new Vous(
+  "vous",
+  "vous",
+  /* @__PURE__ */ new M()
+);
+var ils = /* @__PURE__ */ new Ils(
+  "ils",
+  "se",
+  /* @__PURE__ */ new M()
+);
+var elles = /* @__PURE__ */ new Elles(
+  "elles",
+  "se",
+  /* @__PURE__ */ new F()
+);
 var pronounlist = /* @__PURE__ */ toList([
   "je",
   "tu",
@@ -5212,6 +5677,304 @@ var pronounlist = /* @__PURE__ */ toList([
   "vous",
   "ils",
   "elles"
+]);
+var conjugations = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Er(),
+    /* @__PURE__ */ toList([
+      [je, "e"],
+      [tu, "es"],
+      [il, "e"],
+      [elle, "e"],
+      [nous, "ons"],
+      [vous, "ez"],
+      [ils, "ent"],
+      [elles, "ent"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Ir(),
+    /* @__PURE__ */ toList([
+      [je, "is"],
+      [tu, "is"],
+      [il, "it"],
+      [elle, "it"],
+      [nous, "issons"],
+      [vous, "issez"],
+      [ils, "issent"],
+      [elles, "issent"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Re(),
+    /* @__PURE__ */ toList([
+      [je, "s"],
+      [tu, "s"],
+      [il, ""],
+      [elle, ""],
+      [nous, "ons"],
+      [vous, "ez"],
+      [ils, "ent"],
+      [elles, "ent"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "vais"],
+      [tu, "vas"],
+      [il, "va"],
+      [elle, "va"],
+      [nous, "allons"],
+      [vous, "allez"],
+      [ils, "vont"],
+      [elles, "vont"],
+      [infinitive, "aller"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "ai"],
+      [tu, "as"],
+      [il, "a"],
+      [elle, "a"],
+      [nous, "avons"],
+      [vous, "avez"],
+      [ils, "ont"],
+      [elles, "ont"],
+      [infinitive, "avoir"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "suis"],
+      [tu, "es"],
+      [il, "est"],
+      [elle, "est"],
+      [nous, "sommes"],
+      [vous, "\xEAtes"],
+      [ils, "sont"],
+      [elles, "sont"],
+      [infinitive, "etre"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "viens"],
+      [tu, "viens"],
+      [il, "vient"],
+      [elle, "vient"],
+      [nous, "venons"],
+      [vous, "venez"],
+      [ils, "viennent"],
+      [elles, "viennent"],
+      [infinitive, "venir"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "nais"],
+      [tu, "nais"],
+      [il, "na\xEEt"],
+      [elle, "na\xEEt"],
+      [nous, "naissons"],
+      [vous, "naissez"],
+      [ils, "naissent"],
+      [elles, "naissent"],
+      [infinitive, "na\xEEtre"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "meurs"],
+      [tu, "meurs"],
+      [il, "meurt"],
+      [elle, "meurt"],
+      [nous, "mourons"],
+      [vous, "mourez"],
+      [ils, "meurent"],
+      [elles, "meurent"],
+      [infinitive, "mourir"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "deviens"],
+      [tu, "deviens"],
+      [il, "devient"],
+      [elle, "devient"],
+      [nous, "devenons"],
+      [vous, "devenez"],
+      [ils, "deviennent"],
+      [elles, "deviennent"],
+      [infinitive, "devenir"]
+    ])
+  ),
+  /* @__PURE__ */ new ConjugationPattern(
+    /* @__PURE__ */ new Present(),
+    /* @__PURE__ */ new Irregular(),
+    /* @__PURE__ */ toList([
+      [je, "reviens"],
+      [tu, "reviens"],
+      [il, "revient"],
+      [elle, "revient"],
+      [nous, "revenons"],
+      [vous, "revenez"],
+      [ils, "reviennent"],
+      [elles, "reviennent"],
+      [infinitive, "revenir"]
+    ])
+  )
+]);
+var sentences = /* @__PURE__ */ toList([
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new Present(),
+    false,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new Present(),
+    false,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new Present(),
+    true,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated()),
+      /* @__PURE__ */ new Pas()
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new Present(),
+    true,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new FuturProche(),
+    false,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Infinitive())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new FuturProche(),
+    false,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new Pas(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Infinitive())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new FuturProche(),
+    true,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new Pas(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Infinitive())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new FuturProche(),
+    true,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Infinitive())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new PasseCompose(),
+    false,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Participle())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new PasseCompose(),
+    false,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new Pas(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Participle())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new PasseCompose(),
+    true,
+    true,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new Pas(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Participle())
+    ])
+  ),
+  /* @__PURE__ */ new SentenceOrder(
+    /* @__PURE__ */ new PasseCompose(),
+    true,
+    false,
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Pronoun(),
+      /* @__PURE__ */ new AuxiliaryVerb(),
+      /* @__PURE__ */ new ReflexivePronoun(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Participle())
+    ])
+  )
 ]);
 var verblist = /* @__PURE__ */ toList([
   ["manger", /* @__PURE__ */ new Verb("manger", /* @__PURE__ */ new Er())],
@@ -5353,14 +6116,331 @@ var verblist = /* @__PURE__ */ toList([
     /* @__PURE__ */ new Verb("ERROR", /* @__PURE__ */ new Irregular())
   ]
 ]);
+var passe_compose_etre_verbs = /* @__PURE__ */ toList([
+  "aller",
+  "venir",
+  "arriver",
+  "partir",
+  "entrer",
+  "sortir",
+  "monter",
+  "descendre",
+  "na\xEEtre",
+  "mourir",
+  "rester",
+  "retourner",
+  "tomber",
+  "passer",
+  "devenir",
+  "revenir",
+  "rentrer"
+]);
+
+// build/dev/javascript/app/conjugator.mjs
+var VerbNotFound = class extends CustomType {
+};
+var SentenceOrderNotFound = class extends CustomType {
+};
+var SuffixListNotFound = class extends CustomType {
+};
+var VerbEndingNotFound = class extends CustomType {
+};
+var ElisionError1 = class extends CustomType {
+};
+var ElisionError2 = class extends CustomType {
+};
+var AuxVerbNotFound = class extends CustomType {
+};
+function result_to_string(input2) {
+  if (input2 instanceof Ok) {
+    let sentence = input2[0];
+    return sentence;
+  } else {
+    let $ = input2[0];
+    if ($ instanceof VerbNotFound) {
+      return "input verb string not found";
+    } else if ($ instanceof SentenceOrderNotFound) {
+      return "input context did not yield sentence structure";
+    } else if ($ instanceof SuffixListNotFound) {
+      return "suffix list not found";
+    } else if ($ instanceof VerbEndingNotFound) {
+      return "verb ending not found";
+    } else if ($ instanceof ElisionError1) {
+      return "elision error in first word (probably an empty string)";
+    } else if ($ instanceof ElisionError2) {
+      return "elision error in second word (probably an empty string)";
+    } else {
+      return "auxiliary verb not found";
+    }
+  }
+}
+function get_verb(input2) {
+  let verbdict = from_list(verblist);
+  let _pipe = map_get(verbdict, input2);
+  return replace_error(_pipe, new VerbNotFound());
+}
+function get_sentence_structure(context) {
+  let _pipe = find2(
+    sentences,
+    (x) => {
+      return isEqual(x.tense, context.tense) && x.is_reflexive === context.is_reflexive && x.is_negated === context.is_negated;
+    }
+  );
+  return replace_error(_pipe, new SentenceOrderNotFound());
+}
+function vowel_check(letter) {
+  if (letter === "a") {
+    return true;
+  } else if (letter === "e") {
+    return true;
+  } else if (letter === "i") {
+    return true;
+  } else if (letter === "o") {
+    return true;
+  } else if (letter === "u") {
+    return true;
+  } else {
+    return false;
+  }
+}
+function elision_check(first2, second) {
+  return try$(
+    (() => {
+      let _pipe = last(first2);
+      return replace_error(_pipe, new ElisionError1());
+    })(),
+    (firstend) => {
+      return map3(
+        (() => {
+          let _pipe = first(second);
+          return replace_error(_pipe, new ElisionError2());
+        })(),
+        (secondstart) => {
+          let $ = vowel_check(firstend);
+          let $1 = vowel_check(secondstart);
+          if ($1) {
+            if ($) {
+              return drop_end(first2, 1) + "'";
+            } else {
+              return first2 + " ";
+            }
+          } else {
+            return first2 + " ";
+          }
+        }
+      );
+    }
+  );
+}
+function prep_elisions(sentence) {
+  if (sentence instanceof Empty) {
+    return toList([]);
+  } else {
+    let $ = sentence.head;
+    if ($ === "tu") {
+      let rest = sentence.tail;
+      return append(toList([new Ok("tu ")]), prep_elisions(rest));
+    } else {
+      let $1 = sentence.tail;
+      if ($1 instanceof Empty) {
+        let last2 = $;
+        return toList([new Ok(last2)]);
+      } else {
+        let first2 = $;
+        let second = $1.head;
+        let rest = $1.tail;
+        return append(
+          toList([elision_check(first2, second)]),
+          prep_elisions(prepend(second, rest))
+        );
+      }
+    }
+  }
+}
+function join_sentence(sentence) {
+  let words = prep_elisions(sentence);
+  return map3(
+    all(words),
+    (outputresult) => {
+      return concat2(outputresult);
+    }
+  );
+}
+function process_participle(context) {
+  let root3 = drop_end(context.verb.infinitive, 2);
+  let $ = context.verb.ending;
+  if ($ instanceof Er) {
+    return root3 + "\xE9";
+  } else if ($ instanceof Ir) {
+    return root3 + "i";
+  } else if ($ instanceof Re) {
+    return root3 + "u";
+  } else {
+    return "TODO: irregular participle";
+  }
+}
+function select_aux(context) {
+  let $ = context.tense;
+  if ($ instanceof PasseCompose) {
+    let $1 = contains(
+      passe_compose_etre_verbs,
+      context.verb.infinitive
+    );
+    if ($1) {
+      return get_verb("etre");
+    } else {
+      return get_verb("avoir");
+    }
+  } else if ($ instanceof FuturProche) {
+    return get_verb("aller");
+  } else {
+    return new Error(new AuxVerbNotFound());
+  }
+}
+function select_suffix_list(context) {
+  let _block;
+  let $ = context.verb.ending;
+  if ($ instanceof Irregular) {
+    _block = find2(
+      conjugations,
+      (x) => {
+        return isEqual(x.tense, context.tense) && isEqual(
+          key_find(x.suffixes, infinitive),
+          new Ok(context.verb.infinitive)
+        );
+      }
+    );
+  } else {
+    _block = find2(
+      conjugations,
+      (x) => {
+        return isEqual(x.tense, context.tense) && isEqual(
+          x.ending,
+          context.verb.ending
+        );
+      }
+    );
+  }
+  let _pipe = _block;
+  return replace_error(_pipe, new SuffixListNotFound());
+}
+function select_verb_ending(suffixlist, context) {
+  return map3(
+    (() => {
+      let _pipe = key_find(suffixlist.suffixes, context.pronoun);
+      return replace_error(_pipe, new VerbEndingNotFound());
+    })(),
+    (match) => {
+      let $ = context.verb.ending;
+      if ($ instanceof Irregular) {
+        return match;
+      } else {
+        return drop_end(context.verb.infinitive, 2) + match;
+      }
+    }
+  );
+}
+function process_verb(context) {
+  return try$(
+    select_suffix_list(context),
+    (suffixlist) => {
+      return select_verb_ending(suffixlist, context);
+    }
+  );
+}
+function build_sentence(sentence, context) {
+  let processed_list = map(
+    sentence.grammar_units,
+    (x) => {
+      if (x instanceof Pronoun) {
+        return new Ok(context.pronoun.string);
+      } else if (x instanceof ReflexivePronoun) {
+        return new Ok(context.pronoun.reflexive);
+      } else if (x instanceof MainVerb) {
+        let $ = x[0];
+        if ($ instanceof Infinitive) {
+          return new Ok(context.verb.infinitive);
+        } else if ($ instanceof Conjugated) {
+          return process_verb(context);
+        } else {
+          return new Ok(process_participle(context));
+        }
+      } else if (x instanceof AuxiliaryVerb) {
+        return try$(
+          select_aux(context),
+          (aux_verb) => {
+            let _block;
+            let _record = context;
+            _block = new Context(
+              _record.pronoun,
+              new Present(),
+              _record.verblookup,
+              aux_verb,
+              _record.is_reflexive,
+              _record.is_negated
+            );
+            let context$1 = _block;
+            return process_verb(context$1);
+          }
+        );
+      } else if (x instanceof Ne) {
+        return new Ok("ne");
+      } else if (x instanceof Pas) {
+        return new Ok("pas");
+      } else {
+        return new Ok("object");
+      }
+    }
+  );
+  return map3(
+    all(processed_list),
+    (listresult) => {
+      let _pipe = join_sentence(listresult);
+      return result_to_string(_pipe);
+    }
+  );
+}
+function conjugate(context) {
+  let _pipe = try$(
+    get_verb(context.verblookup),
+    (verbstruct) => {
+      return try$(
+        get_sentence_structure(context),
+        (sentence_order) => {
+          let _block;
+          let _record = context;
+          _block = new Context(
+            _record.pronoun,
+            _record.tense,
+            _record.verblookup,
+            verbstruct,
+            _record.is_reflexive,
+            _record.is_negated
+          );
+          let context$1 = _block;
+          return build_sentence(sentence_order, context$1);
+        }
+      );
+    }
+  );
+  return result_to_string(_pipe);
+}
+var emptyverb = /* @__PURE__ */ new Verb(
+  "empty",
+  /* @__PURE__ */ new Irregular()
+);
 
 // build/dev/javascript/app/app.mjs
 var FILEPATH = "src/app.gleam";
 var Model = class extends CustomType {
-  constructor(verb, pronoun) {
+  constructor(verb, pronoun, tense, reflexive, negated, output) {
     super();
     this.verb = verb;
     this.pronoun = pronoun;
+    this.tense = tense;
+    this.reflexive = reflexive;
+    this.negated = negated;
+    this.output = output;
   }
 };
 var UserSelectVerb = class extends CustomType {
@@ -5375,19 +6455,213 @@ var UserSelectPronoun = class extends CustomType {
     this[0] = $0;
   }
 };
+var UserSelectTense = class extends CustomType {
+  constructor($0) {
+    super();
+    this[0] = $0;
+  }
+};
+var UserCheckedBox = class extends CustomType {
+  constructor(value2, bool4) {
+    super();
+    this.value = value2;
+    this.bool = bool4;
+  }
+};
+var UserClickSubmit = class extends CustomType {
+};
 function init(_) {
-  return new Model("noverb", "nopro");
+  return new Model("manger", "je", new Present(), false, false, "hi there!");
+}
+function send_to_conjugator(model) {
+  let _block;
+  let $ = model.pronoun;
+  if ($ === "je") {
+    _block = je;
+  } else if ($ === "tu") {
+    _block = tu;
+  } else if ($ === "il") {
+    _block = il;
+  } else if ($ === "elle") {
+    _block = elle;
+  } else if ($ === "nous") {
+    _block = nous;
+  } else if ($ === "vous") {
+    _block = vous;
+  } else if ($ === "ils") {
+    _block = ils;
+  } else {
+    _block = elles;
+  }
+  let pronoun = _block;
+  let context = new Context(
+    pronoun,
+    model.tense,
+    model.verb,
+    emptyverb,
+    model.reflexive,
+    model.negated
+  );
+  return conjugate(context);
 }
 function update2(model, msg) {
   if (msg instanceof UserSelectVerb) {
     let verb = msg[0];
     let _record = model;
-    return new Model(verb, _record.pronoun);
-  } else {
+    return new Model(
+      verb,
+      _record.pronoun,
+      _record.tense,
+      _record.reflexive,
+      _record.negated,
+      _record.output
+    );
+  } else if (msg instanceof UserSelectPronoun) {
     let pronoun = msg[0];
     let _record = model;
-    return new Model(_record.verb, pronoun);
+    return new Model(
+      _record.verb,
+      pronoun,
+      _record.tense,
+      _record.reflexive,
+      _record.negated,
+      _record.output
+    );
+  } else if (msg instanceof UserSelectTense) {
+    let tense = msg[0];
+    if (tense === "Futur Proche") {
+      let _record = model;
+      return new Model(
+        _record.verb,
+        _record.pronoun,
+        new FuturProche(),
+        _record.reflexive,
+        _record.negated,
+        _record.output
+      );
+    } else if (tense === "Passe Compose") {
+      let _record = model;
+      return new Model(
+        _record.verb,
+        _record.pronoun,
+        new PasseCompose(),
+        _record.reflexive,
+        _record.negated,
+        _record.output
+      );
+    } else {
+      let _record = model;
+      return new Model(
+        _record.verb,
+        _record.pronoun,
+        new Present(),
+        _record.reflexive,
+        _record.negated,
+        _record.output
+      );
+    }
+  } else if (msg instanceof UserCheckedBox) {
+    let value2 = msg.value;
+    let bool4 = msg.bool;
+    if (value2 === "reflexive") {
+      let _record = model;
+      return new Model(
+        _record.verb,
+        _record.pronoun,
+        _record.tense,
+        bool4,
+        _record.negated,
+        _record.output
+      );
+    } else if (value2 === "negated") {
+      let _record = model;
+      return new Model(
+        _record.verb,
+        _record.pronoun,
+        _record.tense,
+        _record.reflexive,
+        bool4,
+        _record.output
+      );
+    } else {
+      return model;
+    }
+  } else {
+    let _record = model;
+    return new Model(
+      _record.verb,
+      _record.pronoun,
+      _record.tense,
+      _record.reflexive,
+      _record.negated,
+      send_to_conjugator(model)
+    );
   }
+}
+function render_model(model) {
+  let _block;
+  let $ = model.tense;
+  if ($ instanceof Present) {
+    _block = "present";
+  } else if ($ instanceof PasseCompose) {
+    _block = "passe compose";
+  } else {
+    _block = "future proche";
+  }
+  let tense = _block;
+  let negated = to_string(model.negated);
+  let reflexive = to_string(model.reflexive);
+  return "debug: " + model.pronoun + model.verb + tense + negated + reflexive;
+}
+function check_boxes() {
+  let boxlist = toList(["negated", "reflexive"]);
+  return map(
+    boxlist,
+    (x) => {
+      return label(
+        toList([class$("flex items-center gap-2")]),
+        toList([
+          input(
+            toList([
+              class$("gap-2"),
+              type_("checkbox"),
+              on_check((b) => {
+                return new UserCheckedBox(x, b);
+              })
+            ])
+          ),
+          text3(x)
+        ])
+      );
+    }
+  );
+}
+function tense_radio() {
+  let tenselist = toList(["Present", "Futur Proche", "Passe Compose"]);
+  return map(
+    tenselist,
+    (x) => {
+      return label(
+        toList([
+          for$("radio"),
+          class$("flex items-center gap-2")
+        ]),
+        toList([
+          input(
+            toList([
+              on_input((i) => {
+                return new UserSelectTense(i);
+              }),
+              type_("radio"),
+              name("tense"),
+              value(x)
+            ])
+          ),
+          text3(x)
+        ])
+      );
+    }
+  );
 }
 function verb_dropdown() {
   let _pipe = keys(from_list(verblist));
@@ -5404,55 +6678,117 @@ function pronoun_dropdown() {
   );
 }
 function view(model) {
-  echo("test", "src/app.gleam", 50);
+  echo("test", "src/app.gleam", 106);
   return div(
-    toList([class$("p-32 mx-auto w-full max-w-2xl space-y-4")]),
     toList([
-      label(
-        toList([class$("flex gap-2")]),
+      class$(
+        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6"
+      ),
+      style("background-image", "url(priv/static/bg2.jpg)")
+    ]),
+    toList([
+      div(
         toList([
-          span(
-            toList([]),
-            toList([text3(model.pronoun + " " + model.verb)])
-          ),
-          p(
-            toList([]),
+          class$(
+            "relative min-h-screen flex flex-col items-center gap-6 p-6 "
+          )
+        ]),
+        toList([
+          span(toList([]), toList([text3(render_model(model))])),
+          div(
             toList([
-              select(
+              class$(
+                "flex flex-wrap items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2"
+              )
+            ]),
+            toList([
+              div(
+                toList([class$("flex gap-4")]),
                 toList([
-                  on_change((x) => {
-                    return new UserSelectPronoun(x);
-                  })
-                ]),
-                pronoun_dropdown()
-              ),
-              select(
-                toList([
-                  on_change((x) => {
-                    return new UserSelectVerb(x);
-                  })
-                ]),
-                verb_dropdown()
-              ),
-              input(
-                toList([
-                  on_input((x) => {
-                    return new UserSelectPronoun(x);
-                  }),
-                  type_("radio"),
-                  name("tense"),
-                  value("thingie")
+                  select(
+                    toList([
+                      class$("bg-white p-2"),
+                      on_change(
+                        (x) => {
+                          return new UserSelectPronoun(x);
+                        }
+                      )
+                    ]),
+                    pronoun_dropdown()
+                  ),
+                  select(
+                    toList([
+                      class$("bg-white p-2"),
+                      on_change((x) => {
+                        return new UserSelectVerb(x);
+                      })
+                    ]),
+                    verb_dropdown()
+                  )
                 ])
               ),
-              label(
-                toList([for$("radio")]),
-                toList([text3("thingie")])
+              div(
+                toList([class$("flex gap-8")]),
+                toList([
+                  div(
+                    toList([class$("flex flex-col gap-2")]),
+                    tense_radio()
+                  )
+                ])
+              ),
+              div(
+                toList([class$("flex gap-8")]),
+                toList([
+                  div(
+                    toList([class$("flex flex-col gap-2")]),
+                    check_boxes()
+                  )
+                ])
+              ),
+              div(
+                toList([class$("flex gap-8")]),
+                toList([
+                  div(
+                    toList([class$("flex flex-col gap-2")]),
+                    toList([
+                      button(
+                        toList([
+                          class$(
+                            "bg-blue-100 hover:bg-blue-200 py-2 px-4 rounded border-r-2 border-b-2 border-black"
+                          ),
+                          on_click(new UserClickSubmit())
+                        ]),
+                        toList([text3("conjugate!")])
+                      )
+                    ])
+                  )
+                ])
+              )
+            ])
+          ),
+          div(
+            toList([
+              class$(
+                "bg-white border-2 border-black py-2 px-5 rounded radius-20"
+              )
+            ]),
+            toList([text3(model.output)])
+          ),
+          div(
+            toList([class$("absolute bottom-0 left-0 right-0 z-0")]),
+            toList([
+              img(
+                toList([
+                  class$(
+                    "mx-auto max-h-[calc(100vh-300px)] object-contain"
+                  ),
+                  src("priv/static/logocropped.png")
+                ])
               )
             ])
           )
         ])
-      ),
-      p(toList([]), toList([text3("!")]))
+      )
     ])
   );
 }
@@ -5464,10 +6800,10 @@ function main() {
       "let_assert",
       FILEPATH,
       "app",
-      18,
+      19,
       "main",
       "Pattern match failed, no pattern matched the value.",
-      { value: $, start: 465, end: 514, pattern_start: 476, pattern_end: 481 }
+      { value: $, start: 483, end: 532, pattern_start: 494, pattern_end: 499 }
     );
   }
   return void 0;
