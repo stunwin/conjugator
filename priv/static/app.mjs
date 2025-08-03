@@ -2722,6 +2722,9 @@ function boolean_attribute(name2, value2) {
 function class$(name2) {
   return attribute2("class", name2);
 }
+function hidden(is_hidden) {
+  return boolean_attribute("hidden", is_hidden);
+}
 function id(value2) {
   return attribute2("id", value2);
 }
@@ -6530,7 +6533,7 @@ function init(_) {
     new Present(),
     false,
     false,
-    "hi there!",
+    "bonjour!",
     false,
     false
   );
@@ -6678,8 +6681,21 @@ function description() {
         p(
           toList([]),
           toList([
-            text3(
-              "This is a learning tool to help practice A1-level French. I made this because I kept working on learning gleam instead of working on learning french. So I figured, hey let's kill two birds with one stone. Fast forward to now and I've made my first ever webapp, and absolutely not taken my DELF exam, so let's call it a mixed success. For whatever it's worth, this is my first-ever webapp. You can see the source code on my github if you want a laugh."
+            div(
+              toList([]),
+              toList([
+                text3(
+                  "This is a learning tool to help practice A1-level French. Just select your pronoun, verb, and tense, and then decide if you want to negate it or make it reflexive."
+                )
+              ])
+            ),
+            p(
+              toList([]),
+              toList([
+                text3(
+                  "I made this because I kept working on learning gleam instead of working on learning french. So I figured, hey let's kill two birds with one stone. Fast forward to now and I've made my first ever webapp, and absolutely not taken my DELF exam, so let's call it a mixed success."
+                )
+              ])
             )
           ])
         ),
@@ -6896,7 +6912,7 @@ function view(model) {
   return div(
     toList([
       class$(
-        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6"
+        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10"
       ),
       style("background-image", "url(priv/static/bg2.jpg)")
     ]),
@@ -6922,7 +6938,7 @@ function view(model) {
           div(
             toList([
               class$(
-                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2"
+                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10"
               )
             ]),
             append(
@@ -6935,15 +6951,25 @@ function view(model) {
                     ),
                     on_click(new UserToggleDescription())
                   ]),
-                  toList([text3("what is this?")])
+                  toList([
+                    (() => {
+                      let $ = model.description;
+                      if ($) {
+                        return text3("back to the thing");
+                      } else {
+                        return text3("what is this?");
+                      }
+                    })()
+                  ])
                 )
               ])
             )
           ),
           div(
             toList([
+              hidden(model.description),
               class$(
-                "bg-white border-2 border-black py-2 px-5 rounded radius-20"
+                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10"
               )
             ]),
             toList([text3(model.output)])

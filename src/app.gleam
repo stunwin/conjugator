@@ -42,7 +42,7 @@ fn init(_) -> Model {
     tense: t.Present,
     reflexive: False,
     negated: False,
-    output: "hi there!",
+    output: "bonjour!",
     debug: False,
     description: False,
   )
@@ -105,7 +105,7 @@ fn view(model: Model) -> Element(Msg) {
   html.div(
     [
       attribute.class(
-        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6",
+        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10",
       ),
       attribute.style("background-image", "url(priv/static/bg2.jpg)"),
     ],
@@ -124,7 +124,7 @@ fn view(model: Model) -> Element(Msg) {
           html.div(
             [
               attribute.class(
-                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2",
+                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10",
               ),
             ],
             //main app contents switches here
@@ -137,14 +137,20 @@ fn view(model: Model) -> Element(Msg) {
                   ),
                   event.on_click(UserToggleDescription),
                 ],
-                [html.text("what is this?")],
+                [
+                  case model.description {
+                    False -> html.text("what is this?")
+                    True -> html.text("back to the thing")
+                  },
+                ],
               ),
             ]),
           ),
           html.div(
             [
+              attribute.hidden(model.description),
               attribute.class(
-                "bg-white border-2 border-black py-2 px-5 rounded radius-20",
+                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10",
               ),
             ],
             [html.text(model.output)],
@@ -175,9 +181,16 @@ fn description() {
   [
     html.div([attribute.class("flex sm:flex-row flex-col gap-4")], [
       html.p([], [
-        html.text(
-          "This is a learning tool to help practice A1-level French. I made this because I kept working on learning gleam instead of working on learning french. So I figured, hey let's kill two birds with one stone. Fast forward to now and I've made my first ever webapp, and absolutely not taken my DELF exam, so let's call it a mixed success. For whatever it's worth, this is my first-ever webapp. You can see the source code on my github if you want a laugh.",
-        ),
+        html.div([], [
+          html.text(
+            "This is a learning tool to help practice A1-level French. Just select your pronoun, verb, and tense, and then decide if you want to negate it or make it reflexive.",
+          ),
+        ]),
+        html.p([], [
+          html.text(
+            "I made this because I kept working on learning gleam instead of working on learning french. So I figured, hey let's kill two birds with one stone. Fast forward to now and I've made my first ever webapp, and absolutely not taken my DELF exam, so let's call it a mixed success.",
+          ),
+        ]),
       ]),
       html.div(
         [attribute.class("flex flex-col  items-center border-2 px-5 py-2")],

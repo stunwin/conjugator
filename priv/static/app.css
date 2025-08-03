@@ -192,8 +192,14 @@
   .left-0 {
     left: calc(var(--spacing) * 0);
   }
+  .-z-10 {
+    z-index: calc(10 * -1);
+  }
   .z-0 {
     z-index: 0;
+  }
+  .z-10 {
+    z-index: 10;
   }
   .mx-auto {
     margin-inline: auto;
@@ -203,6 +209,9 @@
   }
   .flex {
     display: flex;
+  }
+  .hidden {
+    display: none;
   }
   .h-screen {
     height: 100vh;
