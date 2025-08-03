@@ -187,6 +187,9 @@
   .mx-auto {
     margin-inline: auto;
   }
+  .contents {
+    display: contents;
+  }
   .flex {
     display: flex;
   }

@@ -198,7 +198,7 @@ pub const sentences = [
     tense: t.Present,
     is_negated: True,
     is_reflexive: False,
-    grammar_units: [t.Pronoun, t.MainVerb(t.Conjugated)],
+    grammar_units: [t.Pronoun, t.Ne, t.MainVerb(t.Conjugated), t.Pas],
   ),
   t.SentenceOrder(
     tense: t.Present,
@@ -363,7 +363,6 @@ pub const verblist = [
   #("confondre", t.Verb("confondre", t.Re)),
   #("rendre", t.Verb("rendre", t.Re)),
   #("dépendre", t.Verb("dépendre", t.Re)),
-  #("ERROR", t.Verb("ERROR", t.Irregular)),
 ]
 
 pub const passe_compose_etre_verbs: List(String) = [

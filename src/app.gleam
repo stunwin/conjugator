@@ -3,7 +3,6 @@ import conjugator as c
 import gleam/bool
 import gleam/dict
 import gleam/list
-import gleam/string
 import lustre
 import lustre/attribute
 import lustre/element.{type Element}
@@ -52,8 +51,9 @@ fn init(_) -> Model {
 type Msg {
   UserSelectVerb(String)
   UserSelectPronoun(String)
-  UserSelectTense(String)
-  UserCheckedBox(value: String, bool: Bool)
+  UserSelectTense(t.Tense)
+  UserCheckedNegated(Bool)
+  UserCheckedReflexive(Bool)
   UserClickSubmit
   UserClickDebug
 }
@@ -62,20 +62,9 @@ fn update(model: Model, msg: Msg) -> Model {
   case msg {
     UserSelectVerb(verb) -> Model(..model, verb:)
     UserSelectPronoun(pronoun) -> Model(..model, pronoun:)
-    UserSelectTense(tense) -> {
-      case tense {
-        "Futur Proche" -> Model(..model, tense: t.FuturProche)
-        "Passe Compose" -> Model(..model, tense: t.PasseCompose)
-        _ -> Model(..model, tense: t.Present)
-      }
-    }
-    UserCheckedBox(value, bool) -> {
-      case value {
-        "reflexive" -> Model(..model, reflexive: bool)
-        "negated" -> Model(..model, negated: bool)
-        _ -> model
-      }
-    }
+    UserSelectTense(tense) -> Model(..model, tense:)
+    UserCheckedNegated(boxval) -> Model(..model, negated: boxval)
+    UserCheckedReflexive(boxval) -> Model(..model, reflexive: boxval)
     UserClickSubmit -> Model(..model, output: send_to_conjugator(model))
     UserClickDebug -> Model(..model, debug: bool.negate(model.debug))
   }
@@ -97,8 +86,8 @@ fn send_to_conjugator(model: Model) -> String {
       tense: model.tense,
       verblookup: model.verb,
       verb: c.emptyverb,
-      is_reflexive: model.reflexive,
       is_negated: model.negated,
+      is_reflexive: model.reflexive,
       pronoun:,
     )
   c.conjugate(context)
@@ -140,27 +129,34 @@ fn view(model: Model) -> Element(Msg) {
                     attribute.class("bg-white p-2"),
                     event.on_change(fn(x) { UserSelectPronoun(x) }),
                   ],
-                  pronoun_dropdown(),
+                  dropdown_from_list(v.pronounlist, model.pronoun),
                 ),
+                // dict.keys(dict.from_list(v.verblist))
+
+                // v.pronounlist
                 html.select(
                   [
                     attribute.class("bg-white p-2"),
+                    attribute.value(model.verb),
                     event.on_change(fn(x) { UserSelectVerb(x) }),
                   ],
-                  verb_dropdown(),
+                  dropdown_from_list(
+                    dict.keys(dict.from_list(v.verblist)),
+                    model.verb,
+                  ),
                 ),
               ]),
               html.div([attribute.class("flex gap-8")], [
                 html.div(
                   [attribute.class("flex flex-col gap-2")],
-                  tense_radio(),
+                  tense_radio(model),
                 ),
               ]),
               html.div([attribute.class("flex gap-8")], [
-                html.div(
-                  [attribute.class("flex flex-col gap-2")],
-                  check_boxes(),
-                ),
+                html.div([attribute.class("flex flex-col gap-2")], [
+                  negated_checkbox(model),
+                  reflexive_checkbox(model),
+                ]),
               ]),
               html.div([attribute.class("flex gap-8")], [
                 html.div([attribute.class("flex flex-col gap-2")], [
@@ -211,44 +207,67 @@ fn render_model(model: Model) -> String {
   "debug: " <> model.pronoun <> model.verb <> tense <> negated <> reflexive
 }
 
-fn check_boxes() {
-  let boxlist = ["negated", "reflexive"]
+//[[INPUTS]]
 
-  list.map(boxlist, fn(x) {
-    html.label([attribute.class("flex items-center gap-2")], [
-      html.input([
-        attribute.class("gap-2"),
-        attribute.type_("checkbox"),
-        event.on_check(fn(b) { UserCheckedBox(value: x, bool: b) }),
-      ]),
-      html.text(x),
-    ])
-  })
+fn negated_checkbox(model: Model) {
+  html.label([attribute.class("flex items-center gap-2")], [
+    html.input([
+      attribute.class("gap-2"),
+      attribute.type_("checkbox"),
+      attribute.id("negated"),
+      attribute.checked(model.negated),
+      event.on_check(fn(x) { UserCheckedNegated(x) }),
+    ]),
+    html.text("negated"),
+  ])
 }
 
-fn tense_radio() {
-  let tenselist = ["Present", "Futur Proche", "Passe Compose"]
+fn reflexive_checkbox(model: Model) {
+  html.label([attribute.class("flex items-center gap-2")], [
+    html.input([
+      attribute.class("gap-2"),
+      attribute.type_("checkbox"),
+      attribute.id("reflexive"),
+      attribute.checked(model.reflexive),
+      event.on_check(fn(x) { UserCheckedReflexive(x) }),
+    ]),
+    html.text("reflexive"),
+  ])
+}
+
+fn tense_radio(model: Model) {
+  let tenselist = [
+    #("Present", t.Present),
+    #("Futur Proche", t.FuturProche),
+    #("Passe Compose", t.PasseCompose),
+  ]
   list.map(tenselist, fn(x) {
+    let s = x.0
+    let t = x.1
     html.label(
       [attribute.for("radio"), attribute.class("flex items-center gap-2")],
       [
         html.input([
-          event.on_input(fn(i) { UserSelectTense(i) }),
+          event.on_input(fn(_i) { UserSelectTense(t) }),
           attribute.type_("radio"),
           attribute.name("tense"),
-          attribute.value(x),
+          attribute.value(s),
+          attribute.checked(model.tense == t),
         ]),
-        html.text(x),
+        html.text(s),
       ],
     )
   })
 }
 
-fn verb_dropdown() {
-  dict.keys(dict.from_list(v.verblist))
-  |> list.map(fn(x) { html.option([], x) })
-}
+// dict.keys(dict.from_list(v.verblist))
 
-fn pronoun_dropdown() {
-  list.map(v.pronounlist, fn(x) { html.option([], x) })
+// v.pronounlist
+fn dropdown_from_list(optionlist: List(String), selectedvalue: String) {
+  list.map(optionlist, fn(x) {
+    case x {
+      _ if x == selectedvalue -> html.option([attribute.selected(True)], x)
+      _ -> html.option([], x)
+    }
+  })
 }

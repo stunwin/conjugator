@@ -2449,6 +2449,16 @@ function identity2(x) {
   return x;
 }
 
+// build/dev/javascript/gleam_json/gleam_json_ffi.mjs
+function identity3(x) {
+  return x;
+}
+
+// build/dev/javascript/gleam_json/gleam/json.mjs
+function bool2(input2) {
+  return identity3(input2);
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/set.mjs
 var Set2 = class extends CustomType {
   constructor(dict2) {
@@ -2674,6 +2684,9 @@ function attribute(name2, value2) {
   return new Attribute(attribute_kind, name2, value2);
 }
 var property_kind = 1;
+function property(name2, value2) {
+  return new Property(property_kind, name2, value2);
+}
 var event_kind = 2;
 function event(name2, handler, include, prevent_default, stop_propagation, immediate2, debounce, throttle) {
   return new Event2(
@@ -2696,8 +2709,21 @@ var always_kind = 2;
 function attribute2(name2, value2) {
   return attribute(name2, value2);
 }
+function property2(name2, value2) {
+  return property(name2, value2);
+}
+function boolean_attribute(name2, value2) {
+  if (value2) {
+    return attribute2(name2, "");
+  } else {
+    return property2(name2, bool2(false));
+  }
+}
 function class$(name2) {
   return attribute2("class", name2);
+}
+function id(value2) {
+  return attribute2("id", value2);
 }
 function style(property3, value2) {
   if (property3 === "") {
@@ -2711,11 +2737,17 @@ function style(property3, value2) {
 function src(url) {
   return attribute2("src", url);
 }
-function for$(id) {
-  return attribute2("for", id);
+function checked(is_checked) {
+  return boolean_attribute("checked", is_checked);
+}
+function for$(id2) {
+  return attribute2("for", id2);
 }
 function name(element_name) {
   return attribute2("name", element_name);
+}
+function selected(is_selected) {
+  return boolean_attribute("selected", is_selected);
 }
 function type_(control_type) {
   return attribute2("type", control_type);
@@ -5093,13 +5125,13 @@ var virtualiseNode = (parent, node, index4) => {
 var INPUT_ELEMENTS = ["input", "select", "textarea"];
 var virtualiseInputEvents = (tag, node) => {
   const value2 = node.value;
-  const checked = node.checked;
-  if (tag === "input" && node.type === "checkbox" && !checked) return;
-  if (tag === "input" && node.type === "radio" && !checked) return;
+  const checked2 = node.checked;
+  if (tag === "input" && node.type === "checkbox" && !checked2) return;
+  if (tag === "input" && node.type === "radio" && !checked2) return;
   if (node.type !== "checkbox" && node.type !== "radio" && !value2) return;
   queueMicrotask(() => {
     node.value = value2;
-    node.checked = checked;
+    node.checked = checked2;
     node.dispatchEvent(new Event("input", { bubbles: true }));
     node.dispatchEvent(new Event("change", { bubbles: true }));
     if (document().activeElement !== node) {
@@ -5477,8 +5509,8 @@ function on_check(msg) {
     subfield(
       toList(["target", "checked"]),
       bool,
-      (checked) => {
-        return success(msg(checked));
+      (checked2) => {
+        return success(msg(checked2));
       }
     )
   );
@@ -5861,7 +5893,9 @@ var sentences = /* @__PURE__ */ toList([
     true,
     /* @__PURE__ */ toList([
       /* @__PURE__ */ new Pronoun(),
-      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated())
+      /* @__PURE__ */ new Ne(),
+      /* @__PURE__ */ new MainVerb(/* @__PURE__ */ new Conjugated()),
+      /* @__PURE__ */ new Pas()
     ])
   ),
   /* @__PURE__ */ new SentenceOrder(
@@ -6113,10 +6147,6 @@ var verblist = /* @__PURE__ */ toList([
   [
     "d\xE9pendre",
     /* @__PURE__ */ new Verb("d\xE9pendre", /* @__PURE__ */ new Re())
-  ],
-  [
-    "ERROR",
-    /* @__PURE__ */ new Verb("ERROR", /* @__PURE__ */ new Irregular())
   ]
 ]);
 var passe_compose_etre_verbs = /* @__PURE__ */ toList([
@@ -6465,11 +6495,16 @@ var UserSelectTense = class extends CustomType {
     this[0] = $0;
   }
 };
-var UserCheckedBox = class extends CustomType {
-  constructor(value2, bool4) {
+var UserCheckedNegated = class extends CustomType {
+  constructor($0) {
     super();
-    this.value = value2;
-    this.bool = bool4;
+    this[0] = $0;
+  }
+};
+var UserCheckedReflexive = class extends CustomType {
+  constructor($0) {
+    super();
+    this[0] = $0;
   }
 };
 var UserClickSubmit = class extends CustomType {
@@ -6545,68 +6580,40 @@ function update2(model, msg) {
     );
   } else if (msg instanceof UserSelectTense) {
     let tense = msg[0];
-    if (tense === "Futur Proche") {
-      let _record = model;
-      return new Model(
-        _record.verb,
-        _record.pronoun,
-        new FuturProche(),
-        _record.reflexive,
-        _record.negated,
-        _record.output,
-        _record.debug
-      );
-    } else if (tense === "Passe Compose") {
-      let _record = model;
-      return new Model(
-        _record.verb,
-        _record.pronoun,
-        new PasseCompose(),
-        _record.reflexive,
-        _record.negated,
-        _record.output,
-        _record.debug
-      );
-    } else {
-      let _record = model;
-      return new Model(
-        _record.verb,
-        _record.pronoun,
-        new Present(),
-        _record.reflexive,
-        _record.negated,
-        _record.output,
-        _record.debug
-      );
-    }
-  } else if (msg instanceof UserCheckedBox) {
-    let value2 = msg.value;
-    let bool4 = msg.bool;
-    if (value2 === "reflexive") {
-      let _record = model;
-      return new Model(
-        _record.verb,
-        _record.pronoun,
-        _record.tense,
-        bool4,
-        _record.negated,
-        _record.output,
-        _record.debug
-      );
-    } else if (value2 === "negated") {
-      let _record = model;
-      return new Model(
-        _record.verb,
-        _record.pronoun,
-        _record.tense,
-        _record.reflexive,
-        bool4,
-        _record.output,
-        _record.debug
-      );
-    } else {
-      return model;
-    }
+    let _record = model;
+    return new Model(
+      _record.verb,
+      _record.pronoun,
+      tense,
+      _record.reflexive,
+      _record.negated,
+      _record.output,
+      _record.debug
+    );
+  } else if (msg instanceof UserCheckedNegated) {
+    let boxval = msg[0];
+    let _record = model;
+    return new Model(
+      _record.verb,
+      _record.pronoun,
+      _record.tense,
+      _record.reflexive,
+      boxval,
+      _record.output,
+      _record.debug
+    );
+  } else if (msg instanceof UserCheckedReflexive) {
+    let boxval = msg[0];
+    let _record = model;
+    return new Model(
+      _record.verb,
+      _record.pronoun,
+      _record.tense,
+      boxval,
+      _record.negated,
+      _record.output,
+      _record.debug
+    );
   } else if (msg instanceof UserClickSubmit) {
     let _record = model;
     return new Model(
@@ -6646,34 +6653,55 @@ function render_model(model) {
   let reflexive = to_string(model.reflexive);
   return "debug: " + model.pronoun + model.verb + tense + negated + reflexive;
 }
-function check_boxes() {
-  let boxlist = toList(["negated", "reflexive"]);
-  return map(
-    boxlist,
-    (x) => {
-      return label(
-        toList([class$("flex items-center gap-2")]),
+function negated_checkbox(model) {
+  return label(
+    toList([class$("flex items-center gap-2")]),
+    toList([
+      input(
         toList([
-          input(
-            toList([
-              class$("gap-2"),
-              type_("checkbox"),
-              on_check((b) => {
-                return new UserCheckedBox(x, b);
-              })
-            ])
-          ),
-          text3(x)
+          class$("gap-2"),
+          type_("checkbox"),
+          id("negated"),
+          checked(model.negated),
+          on_check((x) => {
+            return new UserCheckedNegated(x);
+          })
         ])
-      );
-    }
+      ),
+      text3("negated")
+    ])
   );
 }
-function tense_radio() {
-  let tenselist = toList(["Present", "Futur Proche", "Passe Compose"]);
+function reflexive_checkbox(model) {
+  return label(
+    toList([class$("flex items-center gap-2")]),
+    toList([
+      input(
+        toList([
+          class$("gap-2"),
+          type_("checkbox"),
+          id("reflexive"),
+          checked(model.reflexive),
+          on_check((x) => {
+            return new UserCheckedReflexive(x);
+          })
+        ])
+      ),
+      text3("reflexive")
+    ])
+  );
+}
+function tense_radio(model) {
+  let tenselist = toList([
+    ["Present", new Present()],
+    ["Futur Proche", new FuturProche()],
+    ["Passe Compose", new PasseCompose()]
+  ]);
   return map(
     tenselist,
     (x) => {
+      let s = x[0];
+      let t = x[1];
       return label(
         toList([
           for$("radio"),
@@ -6682,36 +6710,35 @@ function tense_radio() {
         toList([
           input(
             toList([
-              on_input((i) => {
-                return new UserSelectTense(i);
+              on_input((_) => {
+                return new UserSelectTense(t);
               }),
               type_("radio"),
               name("tense"),
-              value(x)
+              value(s),
+              checked(isEqual(model.tense, t))
             ])
           ),
-          text3(x)
+          text3(s)
         ])
       );
     }
   );
 }
-function verb_dropdown() {
-  let _pipe = keys(from_list(verblist));
-  return map(_pipe, (x) => {
-    return option(toList([]), x);
-  });
-}
-function pronoun_dropdown() {
+function dropdown_from_list(optionlist, selectedvalue) {
   return map(
-    pronounlist,
+    optionlist,
     (x) => {
-      return option(toList([]), x);
+      if (x === selectedvalue) {
+        return option(toList([selected(true)]), x);
+      } else {
+        return option(toList([]), x);
+      }
     }
   );
 }
 function view(model) {
-  echo("test", "src/app.gleam", 110);
+  echo("test", "src/app.gleam", 99);
   return div(
     toList([
       class$(
@@ -6757,16 +6784,20 @@ function view(model) {
                         }
                       )
                     ]),
-                    pronoun_dropdown()
+                    dropdown_from_list(pronounlist, model.pronoun)
                   ),
                   select(
                     toList([
                       class$("bg-white p-2"),
+                      value(model.verb),
                       on_change((x) => {
                         return new UserSelectVerb(x);
                       })
                     ]),
-                    verb_dropdown()
+                    dropdown_from_list(
+                      keys(from_list(verblist)),
+                      model.verb
+                    )
                   )
                 ])
               ),
@@ -6775,7 +6806,7 @@ function view(model) {
                 toList([
                   div(
                     toList([class$("flex flex-col gap-2")]),
-                    tense_radio()
+                    tense_radio(model)
                   )
                 ])
               ),
@@ -6784,7 +6815,7 @@ function view(model) {
                 toList([
                   div(
                     toList([class$("flex flex-col gap-2")]),
-                    check_boxes()
+                    toList([negated_checkbox(model), reflexive_checkbox(model)])
                   )
                 ])
               ),
@@ -6844,10 +6875,10 @@ function main() {
       "let_assert",
       FILEPATH,
       "app",
-      19,
+      18,
       "main",
       "Pattern match failed, no pattern matched the value.",
-      { value: $, start: 483, end: 532, pattern_start: 494, pattern_end: 499 }
+      { value: $, start: 463, end: 512, pattern_start: 474, pattern_end: 479 }
     );
   }
   return void 0;
