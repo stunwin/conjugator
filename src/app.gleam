@@ -31,6 +31,7 @@ type Model {
     negated: Bool,
     output: String,
     debug: Bool,
+    description: Bool,
   )
 }
 
@@ -43,6 +44,7 @@ fn init(_) -> Model {
     negated: False,
     output: "hi there!",
     debug: False,
+    description: False,
   )
 }
 
@@ -56,6 +58,7 @@ type Msg {
   UserCheckedReflexive(Bool)
   UserClickSubmit
   UserClickDebug
+  UserToggleDescription
 }
 
 fn update(model: Model, msg: Msg) -> Model {
@@ -67,6 +70,8 @@ fn update(model: Model, msg: Msg) -> Model {
     UserCheckedReflexive(boxval) -> Model(..model, reflexive: boxval)
     UserClickSubmit -> Model(..model, output: send_to_conjugator(model))
     UserClickDebug -> Model(..model, debug: bool.negate(model.debug))
+    UserToggleDescription ->
+      Model(..model, description: bool.negate(model.description))
   }
 }
 
@@ -119,59 +124,22 @@ fn view(model: Model) -> Element(Msg) {
           html.div(
             [
               attribute.class(
-                "flex flex-wrap items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2",
+                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2",
               ),
             ],
-            [
-              html.div([attribute.class("flex gap-4")], [
-                html.select(
-                  [
-                    attribute.class("bg-white p-2"),
-                    event.on_change(fn(x) { UserSelectPronoun(x) }),
-                  ],
-                  dropdown_from_list(v.pronounlist, model.pronoun),
-                ),
-                // dict.keys(dict.from_list(v.verblist))
+            //main app contents switches here
 
-                // v.pronounlist
-                html.select(
-                  [
-                    attribute.class("bg-white p-2"),
-                    attribute.value(model.verb),
-                    event.on_change(fn(x) { UserSelectVerb(x) }),
-                  ],
-                  dropdown_from_list(
-                    dict.keys(dict.from_list(v.verblist)),
-                    model.verb,
+            list.append(toggle_description(model), [
+              html.div(
+                [
+                  attribute.class(
+                    "absolute bottom-2 right-2 text-blue-500 text-sm",
                   ),
-                ),
-              ]),
-              html.div([attribute.class("flex gap-8")], [
-                html.div(
-                  [attribute.class("flex flex-col gap-2")],
-                  tense_radio(model),
-                ),
-              ]),
-              html.div([attribute.class("flex gap-8")], [
-                html.div([attribute.class("flex flex-col gap-2")], [
-                  negated_checkbox(model),
-                  reflexive_checkbox(model),
-                ]),
-              ]),
-              html.div([attribute.class("flex gap-8")], [
-                html.div([attribute.class("flex flex-col gap-2")], [
-                  html.button(
-                    [
-                      attribute.class(
-                        "bg-blue-100 hover:bg-blue-200 py-2 px-4 rounded border-r-2 border-b-2 border-black",
-                      ),
-                      event.on_click(UserClickSubmit),
-                    ],
-                    [html.text("conjugate!")],
-                  ),
-                ]),
-              ]),
-            ],
+                  event.on_click(UserToggleDescription),
+                ],
+                [html.text("what is this?")],
+              ),
+            ]),
           ),
           html.div(
             [
@@ -185,7 +153,7 @@ fn view(model: Model) -> Element(Msg) {
             html.img([
               event.on_click(UserClickDebug),
               attribute.class(
-                "mx-auto max-h-[calc(100vh-300px)] object-contain",
+                "mx-auto max-h-[calc(100vh-400px)] object-contain",
               ),
               attribute.src("priv/static/logocropped.png"),
             ]),
@@ -194,6 +162,99 @@ fn view(model: Model) -> Element(Msg) {
       ),
     ],
   )
+}
+
+fn toggle_description(model: Model) {
+  case model.description {
+    True -> description()
+    False -> conjugator_controls(model)
+  }
+}
+
+fn description() {
+  [
+    html.div([attribute.class("flex sm:flex-row flex-col gap-4")], [
+      html.p([], [
+        html.text(
+          "This is a learning tool to help practice A1-level French. I made this because I kept working on learning gleam instead of working on learning french. So I figured, hey let's kill two birds with one stone. Fast forward to now and I've made my first ever webapp, and absolutely not taken my DELF exam, so let's call it a mixed success. For whatever it's worth, this is my first-ever webapp. You can see the source code on my github if you want a laugh.",
+        ),
+      ]),
+      html.div(
+        [attribute.class("flex flex-col  items-center border-2 px-5 py-2")],
+        [
+          html.a(
+            [
+              attribute.class(" underline"),
+              attribute.href("https://bsky.app/profile/stunwin.com"),
+            ],
+            [html.text("bluesky")],
+          ),
+          html.a(
+            [
+              attribute.class(" underline"),
+              attribute.href("https://github.com/stunwin"),
+            ],
+            [html.text("github")],
+          ),
+          html.a(
+            [
+              attribute.class("text-red-400 underline"),
+              attribute.href("http://gleam.run"),
+            ],
+            [html.text("gleam!")],
+          ),
+        ],
+      ),
+    ]),
+  ]
+}
+
+fn conjugator_controls(model: Model) -> List(Element(Msg)) {
+  [
+    html.div([attribute.class("flex gap-4")], [
+      html.select(
+        [
+          attribute.class("bg-white p-2"),
+          attribute.value(model.pronoun),
+          event.on_change(fn(x) { UserSelectPronoun(x) }),
+        ],
+        dropdown_from_list(v.pronounlist, model.pronoun),
+      ),
+      // dict.keys(dict.from_list(v.verblist))
+
+      // v.pronounlist
+      html.select(
+        [
+          attribute.class("bg-white p-2"),
+          attribute.value(model.verb),
+          event.on_change(fn(x) { UserSelectVerb(x) }),
+        ],
+        dropdown_from_list(dict.keys(dict.from_list(v.verblist)), model.verb),
+      ),
+    ]),
+    html.div([attribute.class("flex gap-8")], [
+      html.div([attribute.class("flex flex-col gap-2")], tense_radio(model)),
+    ]),
+    html.div([attribute.class("flex gap-8")], [
+      html.div([attribute.class("flex flex-col gap-2")], [
+        negated_checkbox(model),
+        reflexive_checkbox(model),
+      ]),
+    ]),
+    html.div([attribute.class("flex gap-8")], [
+      html.div([attribute.class("flex flex-col gap-2")], [
+        html.button(
+          [
+            attribute.class(
+              "bg-blue-100 hover:bg-blue-200 py-2 px-4 rounded border-r-2 border-b-2 border-black",
+            ),
+            event.on_click(UserClickSubmit),
+          ],
+          [html.text("conjugate!")],
+        ),
+      ]),
+    ]),
+  ]
 }
 
 fn render_model(model: Model) -> String {
