@@ -213,9 +213,6 @@
   .hidden {
     display: none;
   }
-  .h-screen {
-    height: 100vh;
-  }
   .max-h-\[calc\(100vh-400px\)\] {
     max-height: calc(100vh - 400px);
   }

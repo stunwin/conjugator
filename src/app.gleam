@@ -105,7 +105,7 @@ fn view(model: Model) -> Element(Msg) {
   html.div(
     [
       attribute.class(
-        "w-screen h-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10",
+        "w-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10",
       ),
       attribute.style("background-image", "url(priv/static/bg2.jpg)"),
     ],
