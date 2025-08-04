@@ -71,7 +71,7 @@ fn build_sentence(
         t.ReflexivePronoun -> Ok(context.pronoun.reflexive)
         t.MainVerb(t.Conjugated) -> process_verb(context)
         t.MainVerb(t.Infinitive) -> Ok(context.verb.infinitive)
-        t.MainVerb(t.Participle) -> Ok(process_participle(context))
+        t.MainVerb(t.Participle) -> process_participle(context)
         t.AuxiliaryVerb -> {
           use aux_verb <- result.try(select_aux(context))
           let context = t.Context(..context, tense: t.Present, verb: aux_verb)
@@ -98,6 +98,8 @@ fn prep_elisions(
 ) -> List(Result(String, ConjugationError)) {
   case sentence {
     ["tu", ..rest] -> list.append([Ok("tu ")], prep_elisions(rest))
+    //this is specifically to catch shit like "j'a'eu"
+    ["je", "ai", ..rest] -> list.append([Ok("j'ai ")], prep_elisions(rest))
     [first, second, ..rest] ->
       list.append(
         [elision_check(first, second)],
@@ -136,28 +138,33 @@ pub fn process_verb(context: t.Context) -> Result(String, ConjugationError) {
   select_verb_ending(suffixlist, context)
 }
 
-fn process_participle(context: t.Context) -> String {
+fn process_participle(context: t.Context) -> Result(String, ConjugationError) {
+  //this whole function is a mess and i should be ashamed
+  //TODO: refactor
+
   let root = string.drop_end(context.verb.infinitive, 2)
   let conjugated = case context.verb.ending {
-    t.Er -> root <> "é"
-    t.Ir -> root <> "i"
-    t.Re -> root <> "u"
-    t.Irregular -> "TODO: irregular participle"
-    //TODO: gameplan here is that we need to build a new context record for present tense with the participle pronoun and then call process verb.
-    //also this whole function needs to be rejiggered to return a result
+    t.Er -> Ok(root <> "é")
+    t.Ir -> Ok(root <> "i")
+    t.Re -> Ok(root <> "u")
+    t.Irregular -> {
+      let participle_context =
+        t.Context(..context, pronoun: v.participle, tense: t.Present)
+      process_verb(participle_context)
+    }
   }
-  let agreement = case
-    select_aux(context),
-    is_plural(context),
-    context.pronoun.gender
-  {
-    Ok(t.Verb("avoir", t.Irregular)), _, _ -> ""
-    _, True, t.M -> "s"
-    _, True, t.F -> "es"
-    _, False, t.M -> ""
-    _, False, t.F -> "e"
+  case conjugated {
+    Ok(verb) -> {
+      case select_aux(context), is_plural(context), context.pronoun.gender {
+        Ok(t.Verb("avoir", t.Irregular)), _, _ -> Ok(verb <> "")
+        _, True, t.M -> Ok(verb <> "s")
+        _, True, t.F -> Ok(verb <> "es")
+        _, False, t.M -> Ok(verb <> "")
+        _, False, t.F -> Ok(verb <> "e")
+      }
+    }
+    Error(val) -> Error(val)
   }
-  conjugated <> agreement
 }
 
 fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {

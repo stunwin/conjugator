@@ -6317,6 +6317,26 @@ function prep_elisions(sentence) {
     if ($ === "tu") {
       let rest = sentence.tail;
       return append(toList([new Ok("tu ")]), prep_elisions(rest));
+    } else if ($ === "je") {
+      let $1 = sentence.tail;
+      if ($1 instanceof Empty) {
+        let last2 = $;
+        return toList([new Ok(last2)]);
+      } else {
+        let $2 = $1.head;
+        if ($2 === "ai") {
+          let rest = $1.tail;
+          return append(toList([new Ok("j'ai ")]), prep_elisions(rest));
+        } else {
+          let first2 = $;
+          let second = $2;
+          let rest = $1.tail;
+          return append(
+            toList([elision_check(first2, second)]),
+            prep_elisions(prepend(second, rest))
+          );
+        }
+      }
     } else {
       let $1 = sentence.tail;
       if ($1 instanceof Empty) {
@@ -6429,60 +6449,74 @@ function process_participle(context) {
   let _block;
   let $ = context.verb.ending;
   if ($ instanceof Er) {
-    _block = root3 + "\xE9";
+    _block = new Ok(root3 + "\xE9");
   } else if ($ instanceof Ir) {
-    _block = root3 + "i";
+    _block = new Ok(root3 + "i");
   } else if ($ instanceof Re) {
-    _block = root3 + "u";
+    _block = new Ok(root3 + "u");
   } else {
-    _block = "TODO: irregular participle";
+    let _block$1;
+    let _record = context;
+    _block$1 = new Context(
+      participle,
+      new Present(),
+      _record.verblookup,
+      _record.verb,
+      _record.is_reflexive,
+      _record.is_negated
+    );
+    let participle_context = _block$1;
+    _block = process_verb(participle_context);
   }
   let conjugated = _block;
-  let _block$1;
-  let $1 = select_aux(context);
-  let $2 = is_plural(context);
-  let $3 = context.pronoun.gender;
-  if ($1 instanceof Ok) {
-    let $4 = $1[0].ending;
-    if ($4 instanceof Irregular) {
-      let $5 = $1[0].infinitive;
-      if ($5 === "avoir") {
-        _block$1 = "";
+  if (conjugated instanceof Ok) {
+    let verb = conjugated[0];
+    let $1 = select_aux(context);
+    let $2 = is_plural(context);
+    let $3 = context.pronoun.gender;
+    if ($1 instanceof Ok) {
+      let $4 = $1[0].ending;
+      if ($4 instanceof Irregular) {
+        let $5 = $1[0].infinitive;
+        if ($5 === "avoir") {
+          return new Ok(verb + "");
+        } else if ($3 instanceof M) {
+          if ($2) {
+            return new Ok(verb + "s");
+          } else {
+            return new Ok(verb + "");
+          }
+        } else if ($2) {
+          return new Ok(verb + "es");
+        } else {
+          return new Ok(verb + "e");
+        }
       } else if ($3 instanceof M) {
         if ($2) {
-          _block$1 = "s";
+          return new Ok(verb + "s");
         } else {
-          _block$1 = "";
+          return new Ok(verb + "");
         }
       } else if ($2) {
-        _block$1 = "es";
+        return new Ok(verb + "es");
       } else {
-        _block$1 = "e";
+        return new Ok(verb + "e");
       }
     } else if ($3 instanceof M) {
       if ($2) {
-        _block$1 = "s";
+        return new Ok(verb + "s");
       } else {
-        _block$1 = "";
+        return new Ok(verb + "");
       }
     } else if ($2) {
-      _block$1 = "es";
+      return new Ok(verb + "es");
     } else {
-      _block$1 = "e";
+      return new Ok(verb + "e");
     }
-  } else if ($3 instanceof M) {
-    if ($2) {
-      _block$1 = "s";
-    } else {
-      _block$1 = "";
-    }
-  } else if ($2) {
-    _block$1 = "es";
   } else {
-    _block$1 = "e";
+    let val = conjugated[0];
+    return new Error(val);
   }
-  let agreement = _block$1;
-  return conjugated + agreement;
 }
 function build_sentence(sentence, context) {
   let processed_list = map(
@@ -6499,7 +6533,7 @@ function build_sentence(sentence, context) {
         } else if ($ instanceof Conjugated) {
           return process_verb(context);
         } else {
-          return new Ok(process_participle(context));
+          return process_participle(context);
         }
       } else if (x instanceof AuxiliaryVerb) {
         return try$(
