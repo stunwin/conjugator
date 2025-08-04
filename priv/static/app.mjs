@@ -5672,6 +5672,11 @@ var infinitive = /* @__PURE__ */ new Je(
   "",
   /* @__PURE__ */ new M()
 );
+var participle = /* @__PURE__ */ new Je(
+  "",
+  "participle",
+  /* @__PURE__ */ new M()
+);
 var je = /* @__PURE__ */ new Je(
   "je",
   "me",
@@ -5777,7 +5782,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "allez"],
       [ils, "vont"],
       [elles, "vont"],
-      [infinitive, "aller"]
+      [infinitive, "aller"],
+      [participle, "all\xE9"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5792,7 +5798,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "avez"],
       [ils, "ont"],
       [elles, "ont"],
-      [infinitive, "avoir"]
+      [infinitive, "avoir"],
+      [participle, "eu"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5807,7 +5814,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "\xEAtes"],
       [ils, "sont"],
       [elles, "sont"],
-      [infinitive, "\xEAtre"]
+      [infinitive, "\xEAtre"],
+      [participle, "\xE9t\xE9"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5822,7 +5830,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "venez"],
       [ils, "viennent"],
       [elles, "viennent"],
-      [infinitive, "venir"]
+      [infinitive, "venir"],
+      [participle, "venu"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5837,7 +5846,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "naissez"],
       [ils, "naissent"],
       [elles, "naissent"],
-      [infinitive, "na\xEEtre"]
+      [infinitive, "na\xEEtre"],
+      [participle, "n\xE9"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5852,7 +5862,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "mourez"],
       [ils, "meurent"],
       [elles, "meurent"],
-      [infinitive, "mourir"]
+      [infinitive, "mourir"],
+      [participle, "mort"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5867,7 +5878,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "devenez"],
       [ils, "deviennent"],
       [elles, "deviennent"],
-      [infinitive, "devenir"]
+      [infinitive, "devenir"],
+      [participle, "devenu"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -5882,7 +5894,8 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "revenez"],
       [ils, "reviennent"],
       [elles, "reviennent"],
-      [infinitive, "revenir"]
+      [infinitive, "revenir"],
+      [participle, "revenu"]
     ])
   )
 ]);
@@ -6330,19 +6343,6 @@ function join_sentence(sentence) {
     }
   );
 }
-function process_participle(context) {
-  let root3 = drop_end(context.verb.infinitive, 2);
-  let $ = context.verb.ending;
-  if ($ instanceof Er) {
-    return root3 + "\xE9";
-  } else if ($ instanceof Ir) {
-    return root3 + "i";
-  } else if ($ instanceof Re) {
-    return root3 + "u";
-  } else {
-    return "TODO: irregular participle";
-  }
-}
 function select_aux(context) {
   let $ = context.tense;
   if ($ instanceof PasseCompose) {
@@ -6351,7 +6351,7 @@ function select_aux(context) {
       context.verb.infinitive
     );
     if ($1) {
-      return get_verb("etre");
+      return get_verb("\xEAtre");
     } else {
       return get_verb("avoir");
     }
@@ -6411,6 +6411,78 @@ function process_verb(context) {
       return select_verb_ending(suffixlist, context);
     }
   );
+}
+function is_plural(context) {
+  let $ = context.pronoun;
+  let x = $;
+  if (isEqual(x, nous) || isEqual(x, vous) || isEqual(x, ils) || isEqual(
+    x,
+    elles
+  )) {
+    return true;
+  } else {
+    return false;
+  }
+}
+function process_participle(context) {
+  let root3 = drop_end(context.verb.infinitive, 2);
+  let _block;
+  let $ = context.verb.ending;
+  if ($ instanceof Er) {
+    _block = root3 + "\xE9";
+  } else if ($ instanceof Ir) {
+    _block = root3 + "i";
+  } else if ($ instanceof Re) {
+    _block = root3 + "u";
+  } else {
+    _block = "TODO: irregular participle";
+  }
+  let conjugated = _block;
+  let _block$1;
+  let $1 = select_aux(context);
+  let $2 = is_plural(context);
+  let $3 = context.pronoun.gender;
+  if ($1 instanceof Ok) {
+    let $4 = $1[0].ending;
+    if ($4 instanceof Irregular) {
+      let $5 = $1[0].infinitive;
+      if ($5 === "avoir") {
+        _block$1 = "";
+      } else if ($3 instanceof M) {
+        if ($2) {
+          _block$1 = "s";
+        } else {
+          _block$1 = "";
+        }
+      } else if ($2) {
+        _block$1 = "es";
+      } else {
+        _block$1 = "e";
+      }
+    } else if ($3 instanceof M) {
+      if ($2) {
+        _block$1 = "s";
+      } else {
+        _block$1 = "";
+      }
+    } else if ($2) {
+      _block$1 = "es";
+    } else {
+      _block$1 = "e";
+    }
+  } else if ($3 instanceof M) {
+    if ($2) {
+      _block$1 = "s";
+    } else {
+      _block$1 = "";
+    }
+  } else if ($2) {
+    _block$1 = "es";
+  } else {
+    _block$1 = "e";
+  }
+  let agreement = _block$1;
+  return conjugated + agreement;
 }
 function build_sentence(sentence, context) {
   let processed_list = map(

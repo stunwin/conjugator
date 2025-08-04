@@ -2,6 +2,8 @@ import types as t
 
 pub const infinitive = t.Je("", "", t.M)
 
+pub const participle = t.Je("", "participle", t.M)
+
 pub const je = t.Je("je", "me", t.M)
 
 pub const tu = t.Tu("tu", "te", t.M)
@@ -78,6 +80,7 @@ pub const conjugations = [
       #(ils, "vont"),
       #(elles, "vont"),
       #(infinitive, "aller"),
+      #(participle, "allé"),
     ],
   ),
   t.ConjugationPattern(
@@ -93,6 +96,7 @@ pub const conjugations = [
       #(ils, "ont"),
       #(elles, "ont"),
       #(infinitive, "avoir"),
+      #(participle, "eu"),
     ],
   ),
   t.ConjugationPattern(
@@ -108,6 +112,7 @@ pub const conjugations = [
       #(ils, "sont"),
       #(elles, "sont"),
       #(infinitive, "être"),
+      #(participle, "été"),
     ],
   ),
   t.ConjugationPattern(
@@ -123,6 +128,7 @@ pub const conjugations = [
       #(ils, "viennent"),
       #(elles, "viennent"),
       #(infinitive, "venir"),
+      #(participle, "venu"),
     ],
   ),
   t.ConjugationPattern(
@@ -138,6 +144,7 @@ pub const conjugations = [
       #(ils, "naissent"),
       #(elles, "naissent"),
       #(infinitive, "naître"),
+      #(participle, "né"),
     ],
   ),
   t.ConjugationPattern(
@@ -153,6 +160,7 @@ pub const conjugations = [
       #(ils, "meurent"),
       #(elles, "meurent"),
       #(infinitive, "mourir"),
+      #(participle, "mort"),
     ],
   ),
   t.ConjugationPattern(
@@ -168,6 +176,7 @@ pub const conjugations = [
       #(ils, "deviennent"),
       #(elles, "deviennent"),
       #(infinitive, "devenir"),
+      #(participle, "devenu"),
     ],
   ),
   t.ConjugationPattern(
@@ -183,6 +192,7 @@ pub const conjugations = [
       #(ils, "reviennent"),
       #(elles, "reviennent"),
       #(infinitive, "revenir"),
+      #(participle, "revenu"),
     ],
   ),
 ]

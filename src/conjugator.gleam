@@ -138,12 +138,26 @@ pub fn process_verb(context: t.Context) -> Result(String, ConjugationError) {
 
 fn process_participle(context: t.Context) -> String {
   let root = string.drop_end(context.verb.infinitive, 2)
-  case context.verb.ending {
+  let conjugated = case context.verb.ending {
     t.Er -> root <> "é"
     t.Ir -> root <> "i"
     t.Re -> root <> "u"
     t.Irregular -> "TODO: irregular participle"
+    //TODO: gameplan here is that we need to build a new context record for present tense with the participle pronoun and then call process verb.
+    //also this whole function needs to be rejiggered to return a result
   }
+  let agreement = case
+    select_aux(context),
+    is_plural(context),
+    context.pronoun.gender
+  {
+    Ok(t.Verb("avoir", t.Irregular)), _, _ -> ""
+    _, True, t.M -> "s"
+    _, True, t.F -> "es"
+    _, False, t.M -> ""
+    _, False, t.F -> "e"
+  }
+  conjugated <> agreement
 }
 
 fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
@@ -151,7 +165,7 @@ fn select_aux(context: t.Context) -> Result(t.Verb, ConjugationError) {
     t.FuturProche -> get_verb("aller")
     t.PasseCompose ->
       case list.contains(v.passe_compose_etre_verbs, context.verb.infinitive) {
-        True -> get_verb("etre")
+        True -> get_verb("être")
         False -> get_verb("avoir")
       }
     _ -> Error(AuxVerbNotFound)
@@ -188,5 +202,12 @@ fn select_verb_ending(
   case context.verb.ending {
     t.Irregular -> match
     _ -> string.drop_end(context.verb.infinitive, 2) <> match
+  }
+}
+
+fn is_plural(context: t.Context) -> Bool {
+  case context.pronoun {
+    x if x == v.nous || x == v.vous || x == v.ils || x == v.elles -> True
+    _ -> False
   }
 }
