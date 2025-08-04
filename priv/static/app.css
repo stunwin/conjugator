@@ -214,8 +214,8 @@
   .hidden {
     display: none;
   }
-  .max-h-\[calc\(100vh-400px\)\] {
-    max-height: calc(100vh - 400px);
+  .max-h-\[calc\(100vh-300px\)\] {
+    max-height: calc(100vh - 300px);
   }
   .min-h-screen {
     min-height: 100vh;

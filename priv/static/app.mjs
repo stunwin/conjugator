@@ -2740,6 +2740,9 @@ function style(property3, value2) {
 function href(url) {
   return attribute2("href", url);
 }
+function src(url) {
+  return attribute2("src", url);
+}
 function checked(is_checked) {
   return boolean_attribute("checked", is_checked);
 }
@@ -3549,6 +3552,9 @@ function a(attrs, children) {
 }
 function span(attrs, children) {
   return element2("span", attrs, children);
+}
+function img(attrs) {
+  return element2("img", attrs, empty_list);
 }
 function button(attrs, children) {
   return element2("button", attrs, children);
@@ -7136,6 +7142,20 @@ function view(model) {
               )
             ]),
             toList([text3(model.output)])
+          ),
+          div(
+            toList([class$("absolute bottom-0 left-0 right-0 z-0")]),
+            toList([
+              img(
+                toList([
+                  on_click(new UserClickDebug()),
+                  class$(
+                    "mx-auto max-h-[calc(100vh-300px)] object-contain"
+                  ),
+                  src("priv/static/logocropped.png")
+                ])
+              )
+            ])
           )
         ])
       )

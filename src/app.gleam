@@ -163,15 +163,15 @@ fn view(model: Model) -> Element(Msg) {
             ],
             [html.text(model.output)],
           ),
-          // html.div([attribute.class("absolute bottom-0 left-0 right-0 z-0")], [
-        //   html.img([
-        //     event.on_click(UserClickDebug),
-        //     attribute.class(
-        //       "mx-auto max-h-[calc(100vh-400px)] object-contain",
-        //     ),
-        //     attribute.src("priv/static/logocropped.png"),
-        //   ]),
-        // ]),
+          html.div([attribute.class("absolute bottom-0 left-0 right-0 z-0")], [
+            html.img([
+              event.on_click(UserClickDebug),
+              attribute.class(
+                "mx-auto max-h-[calc(100vh-300px)] object-contain",
+              ),
+              attribute.src("priv/static/logocropped.png"),
+            ]),
+          ]),
         ],
       ),
     ],
