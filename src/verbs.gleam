@@ -107,7 +107,7 @@ pub const conjugations = [
       #(vous, "êtes"),
       #(ils, "sont"),
       #(elles, "sont"),
-      #(infinitive, "etre"),
+      #(infinitive, "être"),
     ],
   ),
   t.ConjugationPattern(
@@ -315,7 +315,7 @@ pub const sentences = [
 pub const verblist = [
   #("manger", t.Verb("manger", t.Er)),
   #("avoir", t.Verb("avoir", t.Irregular)),
-  #("etre", t.Verb("etre", t.Irregular)),
+  #("être", t.Verb("être", t.Irregular)),
   #("aller", t.Verb("aller", t.Irregular)),
   #("venir", t.Verb("venir", t.Irregular)),
   #("arriver", t.Verb("arriver", t.Er)),
@@ -368,5 +368,11 @@ pub const verblist = [
 pub const passe_compose_etre_verbs: List(String) = [
   "aller", "venir", "arriver", "partir", "entrer", "sortir", "monter",
   "descendre", "naître", "mourir", "rester", "retourner", "tomber", "passer",
-  "devenir", "revenir", "rentrer",
+  "devenir", "revenir", "rentrer", "être",
+]
+
+pub const non_reflexive_verbs = [
+  "avoir", "être", "naître", "mourir", "aller", "venir", "partir", "arriver",
+  "revenir", "devenir", "rentrer", "entrer", "sortir", "monter", "descendre",
+  "tomber", "rester", "retourner", "passer",
 ]

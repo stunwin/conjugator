@@ -12,6 +12,7 @@
     --color-blue-100: oklch(93.2% 0.032 255.585);
     --color-blue-200: oklch(88.2% 0.059 254.128);
     --color-blue-500: oklch(62.3% 0.214 259.815);
+    --color-gray-600: oklch(44.6% 0.03 256.802);
     --color-black: #000;
     --color-white: #fff;
     --spacing: 0.25rem;
@@ -318,6 +319,9 @@
   }
   .text-blue-500 {
     color: var(--color-blue-500);
+  }
+  .text-gray-600 {
+    color: var(--color-gray-600);
   }
   .text-red-400 {
     color: var(--color-red-400);

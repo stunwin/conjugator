@@ -2740,11 +2740,11 @@ function style(property3, value2) {
 function href(url) {
   return attribute2("href", url);
 }
-function src(url) {
-  return attribute2("src", url);
-}
 function checked(is_checked) {
   return boolean_attribute("checked", is_checked);
+}
+function disabled(is_disabled) {
+  return boolean_attribute("disabled", is_disabled);
 }
 function for$(id2) {
   return attribute2("for", id2);
@@ -3549,9 +3549,6 @@ function a(attrs, children) {
 }
 function span(attrs, children) {
   return element2("span", attrs, children);
-}
-function img(attrs) {
-  return element2("img", attrs, empty_list);
 }
 function button(attrs, children) {
   return element2("button", attrs, children);
@@ -5810,7 +5807,7 @@ var conjugations = /* @__PURE__ */ toList([
       [vous, "\xEAtes"],
       [ils, "sont"],
       [elles, "sont"],
-      [infinitive, "etre"]
+      [infinitive, "\xEAtre"]
     ])
   ),
   /* @__PURE__ */ new ConjugationPattern(
@@ -6032,8 +6029,8 @@ var verblist = /* @__PURE__ */ toList([
     /* @__PURE__ */ new Verb("avoir", /* @__PURE__ */ new Irregular())
   ],
   [
-    "etre",
-    /* @__PURE__ */ new Verb("etre", /* @__PURE__ */ new Irregular())
+    "\xEAtre",
+    /* @__PURE__ */ new Verb("\xEAtre", /* @__PURE__ */ new Irregular())
   ],
   [
     "aller",
@@ -6178,7 +6175,29 @@ var passe_compose_etre_verbs = /* @__PURE__ */ toList([
   "passer",
   "devenir",
   "revenir",
-  "rentrer"
+  "rentrer",
+  "\xEAtre"
+]);
+var non_reflexive_verbs = /* @__PURE__ */ toList([
+  "avoir",
+  "\xEAtre",
+  "na\xEEtre",
+  "mourir",
+  "aller",
+  "venir",
+  "partir",
+  "arriver",
+  "revenir",
+  "devenir",
+  "rentrer",
+  "entrer",
+  "sortir",
+  "monter",
+  "descendre",
+  "tomber",
+  "rester",
+  "retourner",
+  "passer"
 ]);
 
 // build/dev/javascript/app/conjugator.mjs
@@ -6478,7 +6497,7 @@ var emptyverb = /* @__PURE__ */ new Verb(
 // build/dev/javascript/app/app.mjs
 var FILEPATH = "src/app.gleam";
 var Model = class extends CustomType {
-  constructor(verb, pronoun, tense, reflexive, negated, output, debug, description2) {
+  constructor(verb, pronoun, tense, reflexive, negated, output, debug, description2, cannot_be_reflexive) {
     super();
     this.verb = verb;
     this.pronoun = pronoun;
@@ -6488,6 +6507,7 @@ var Model = class extends CustomType {
     this.output = output;
     this.debug = debug;
     this.description = description2;
+    this.cannot_be_reflexive = cannot_be_reflexive;
   }
 };
 var UserSelectVerb = class extends CustomType {
@@ -6535,6 +6555,7 @@ function init(_) {
     false,
     "bonjour!",
     false,
+    false,
     false
   );
 }
@@ -6572,17 +6593,34 @@ function send_to_conjugator(model) {
 function update2(model, msg) {
   if (msg instanceof UserSelectVerb) {
     let verb = msg[0];
-    let _record = model;
-    return new Model(
-      verb,
-      _record.pronoun,
-      _record.tense,
-      _record.reflexive,
-      _record.negated,
-      _record.output,
-      _record.debug,
-      _record.description
-    );
+    let $ = contains(non_reflexive_verbs, verb);
+    if ($) {
+      let _record = model;
+      return new Model(
+        verb,
+        _record.pronoun,
+        _record.tense,
+        false,
+        _record.negated,
+        _record.output,
+        _record.debug,
+        _record.description,
+        true
+      );
+    } else {
+      let _record = model;
+      return new Model(
+        verb,
+        _record.pronoun,
+        _record.tense,
+        _record.reflexive,
+        _record.negated,
+        _record.output,
+        _record.debug,
+        _record.description,
+        false
+      );
+    }
   } else if (msg instanceof UserSelectPronoun) {
     let pronoun = msg[0];
     let _record = model;
@@ -6594,7 +6632,8 @@ function update2(model, msg) {
       _record.negated,
       _record.output,
       _record.debug,
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else if (msg instanceof UserSelectTense) {
     let tense = msg[0];
@@ -6607,7 +6646,8 @@ function update2(model, msg) {
       _record.negated,
       _record.output,
       _record.debug,
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else if (msg instanceof UserCheckedNegated) {
     let boxval = msg[0];
@@ -6620,7 +6660,8 @@ function update2(model, msg) {
       boxval,
       _record.output,
       _record.debug,
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else if (msg instanceof UserCheckedReflexive) {
     let boxval = msg[0];
@@ -6633,7 +6674,8 @@ function update2(model, msg) {
       _record.negated,
       _record.output,
       _record.debug,
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else if (msg instanceof UserClickSubmit) {
     let _record = model;
@@ -6645,7 +6687,8 @@ function update2(model, msg) {
       _record.negated,
       send_to_conjugator(model),
       _record.debug,
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else if (msg instanceof UserClickDebug) {
     let _record = model;
@@ -6657,7 +6700,8 @@ function update2(model, msg) {
       _record.negated,
       _record.output,
       negate(model.debug),
-      _record.description
+      _record.description,
+      _record.cannot_be_reflexive
     );
   } else {
     let _record = model;
@@ -6669,7 +6713,8 @@ function update2(model, msg) {
       _record.negated,
       _record.output,
       _record.debug,
-      negate(model.description)
+      negate(model.description),
+      _record.cannot_be_reflexive
     );
   }
 }
@@ -6767,7 +6812,18 @@ function negated_checkbox(model) {
 }
 function reflexive_checkbox(model) {
   return label(
-    toList([class$("flex items-center gap-2")]),
+    toList([
+      class$(
+        "flex items-center gap-2 " + (() => {
+          let $ = model.cannot_be_reflexive;
+          if ($) {
+            return "text-gray-600";
+          } else {
+            return "";
+          }
+        })()
+      )
+    ]),
     toList([
       input(
         toList([
@@ -6775,6 +6831,7 @@ function reflexive_checkbox(model) {
           type_("checkbox"),
           id("reflexive"),
           checked(model.reflexive),
+          disabled(model.cannot_be_reflexive),
           on_check((x) => {
             return new UserCheckedReflexive(x);
           })
@@ -6908,7 +6965,7 @@ function toggle_description(model) {
   }
 }
 function view(model) {
-  echo("test", "src/app.gleam", 104);
+  echo("test", "src/app.gleam", 112);
   return div(
     toList([
       class$(
@@ -6973,20 +7030,6 @@ function view(model) {
               )
             ]),
             toList([text3(model.output)])
-          ),
-          div(
-            toList([class$("absolute bottom-0 left-0 right-0 z-0")]),
-            toList([
-              img(
-                toList([
-                  on_click(new UserClickDebug()),
-                  class$(
-                    "mx-auto max-h-[calc(100vh-400px)] object-contain"
-                  ),
-                  src("priv/static/logocropped.png")
-                ])
-              )
-            ])
           )
         ])
       )

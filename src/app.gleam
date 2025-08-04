@@ -32,6 +32,7 @@ type Model {
     output: String,
     debug: Bool,
     description: Bool,
+    cannot_be_reflexive: Bool,
   )
 }
 
@@ -45,6 +46,7 @@ fn init(_) -> Model {
     output: "bonjour!",
     debug: False,
     description: False,
+    cannot_be_reflexive: False,
   )
 }
 
@@ -63,7 +65,13 @@ type Msg {
 
 fn update(model: Model, msg: Msg) -> Model {
   case msg {
-    UserSelectVerb(verb) -> Model(..model, verb:)
+    UserSelectVerb(verb) -> {
+      case list.contains(v.non_reflexive_verbs, verb) {
+        False -> Model(..model, verb:, cannot_be_reflexive: False)
+        True ->
+          Model(..model, reflexive: False, verb:, cannot_be_reflexive: True)
+      }
+    }
     UserSelectPronoun(pronoun) -> Model(..model, pronoun:)
     UserSelectTense(tense) -> Model(..model, tense:)
     UserCheckedNegated(boxval) -> Model(..model, negated: boxval)
@@ -155,15 +163,15 @@ fn view(model: Model) -> Element(Msg) {
             ],
             [html.text(model.output)],
           ),
-          html.div([attribute.class("absolute bottom-0 left-0 right-0 z-0")], [
-            html.img([
-              event.on_click(UserClickDebug),
-              attribute.class(
-                "mx-auto max-h-[calc(100vh-400px)] object-contain",
-              ),
-              attribute.src("priv/static/logocropped.png"),
-            ]),
-          ]),
+          // html.div([attribute.class("absolute bottom-0 left-0 right-0 z-0")], [
+        //   html.img([
+        //     event.on_click(UserClickDebug),
+        //     attribute.class(
+        //       "mx-auto max-h-[calc(100vh-400px)] object-contain",
+        //     ),
+        //     attribute.src("priv/static/logocropped.png"),
+        //   ]),
+        // ]),
         ],
       ),
     ],
@@ -297,16 +305,28 @@ fn negated_checkbox(model: Model) {
 }
 
 fn reflexive_checkbox(model: Model) {
-  html.label([attribute.class("flex items-center gap-2")], [
-    html.input([
-      attribute.class("gap-2"),
-      attribute.type_("checkbox"),
-      attribute.id("reflexive"),
-      attribute.checked(model.reflexive),
-      event.on_check(fn(x) { UserCheckedReflexive(x) }),
-    ]),
-    html.text("reflexive"),
-  ])
+  html.label(
+    [
+      attribute.class(
+        "flex items-center gap-2 "
+        <> case model.cannot_be_reflexive {
+          True -> "text-gray-600"
+          False -> ""
+        },
+      ),
+    ],
+    [
+      html.input([
+        attribute.class("gap-2"),
+        attribute.type_("checkbox"),
+        attribute.id("reflexive"),
+        attribute.checked(model.reflexive),
+        attribute.disabled(model.cannot_be_reflexive),
+        event.on_check(fn(x) { UserCheckedReflexive(x) }),
+      ]),
+      html.text("reflexive"),
+    ],
+  )
 }
 
 fn tense_radio(model: Model) {
