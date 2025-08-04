@@ -113,7 +113,7 @@ fn view(model: Model) -> Element(Msg) {
   html.div(
     [
       attribute.class(
-        "w-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10",
+        "w-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10 ",
       ),
       attribute.style("background-image", "url(priv/static/bg2.jpg)"),
     ],
@@ -121,7 +121,7 @@ fn view(model: Model) -> Element(Msg) {
       html.div(
         [
           attribute.class(
-            "relative min-h-screen flex flex-col items-center gap-6 p-6 ",
+            "relative min-h-screen flex flex-col items-center gap-6 p-6 text-xl",
           ),
         ],
         [
@@ -132,7 +132,7 @@ fn view(model: Model) -> Element(Msg) {
           html.div(
             [
               attribute.class(
-                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10",
+                "flex flex-wrap relative w-fit max-w-4xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10",
               ),
             ],
             //main app contents switches here
@@ -158,7 +158,7 @@ fn view(model: Model) -> Element(Msg) {
             [
               attribute.hidden(model.description),
               attribute.class(
-                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10",
+                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10 text-3xl italic",
               ),
             ],
             [html.text(model.output)],
@@ -201,7 +201,11 @@ fn description() {
         ]),
       ]),
       html.div(
-        [attribute.class("flex flex-col  items-center border-2 px-5 py-2")],
+        [
+          attribute.class(
+            "flex flex-col  items-center border-2 px-5 py-2 h-fit ",
+          ),
+        ],
         [
           html.a(
             [

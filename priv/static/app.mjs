@@ -6858,7 +6858,9 @@ function description() {
         ),
         div(
           toList([
-            class$("flex flex-col  items-center border-2 px-5 py-2")
+            class$(
+              "flex flex-col  items-center border-2 px-5 py-2 h-fit "
+            )
           ]),
           toList([
             a(
@@ -7081,7 +7083,7 @@ function view(model) {
   return div(
     toList([
       class$(
-        "w-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10"
+        "w-screen bg-fixed bg-no-repeat bg-cover bg-top gap-6 -z-10 "
       ),
       style("background-image", "url(priv/static/bg2.jpg)")
     ]),
@@ -7089,7 +7091,7 @@ function view(model) {
       div(
         toList([
           class$(
-            "relative min-h-screen flex flex-col items-center gap-6 p-6 "
+            "relative min-h-screen flex flex-col items-center gap-6 p-6 text-xl"
           )
         ]),
         toList([
@@ -7107,7 +7109,7 @@ function view(model) {
           div(
             toList([
               class$(
-                "flex flex-wrap relative w-fit max-w-3xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10"
+                "flex flex-wrap relative w-fit max-w-4xl items-start w-half gap-6 p-10 rounded radius-20 bg-orange-100 border-2 z-10"
               )
             ]),
             append(
@@ -7138,7 +7140,7 @@ function view(model) {
             toList([
               hidden(model.description),
               class$(
-                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10"
+                "bg-white border-2 border-black py-2 px-5 rounded radius-20 z-10 text-3xl italic"
               )
             ]),
             toList([text3(model.output)])
